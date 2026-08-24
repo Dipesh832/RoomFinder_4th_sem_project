@@ -1,7 +1,4 @@
 <?php
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 require_once __DIR__ . "/../config/database.php";
 
 $role = $_GET["role"] ?? "";
@@ -122,35 +119,103 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - RoomFinder</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
 </head>
 
 <body>
-    <h1>Create an Account</h1>
+    <div class="auth-container">
+        <div class="auth-container-content">
+            <div class="auth-left">
+                <div class="auth-left-content">
+                    <div class="brand-logo">
+                        RoomFinder
+                    </div>
+                    <div class="hero-content">
+                        <h1>Find Your Perfect Room</h1>
+                        <p>Join RoomFinder to discover verified rooms, connect directly with property owners, and enjoy
+                            a
+                            safe, hassle-free rental experience.</p>
 
-    <form action="" method="POST">
-        <div>
-            <input type="text" id="name" name="name" placeholder="Full Name" required>
+                        <img src="../assets/images/auth-illustration.png" alt="">
+                    </div>
+                </div>
+            </div>
+            <div class="auth-right">
+                <div class="auth-right-content">
+                    <div class="auth-header">
+                        <h1 class="form-heading">Create an Account</h1>
+                        <p class="form-subheading">Join RoomFinder and find your perfect room today.</p>
+                    </div>
+                    <form class="auth-form" action="" method="POST">
+                        <div class="form-group">
+                            <input type="text" id="name" name="name" placeholder="Full Name"
+                                value="<?php echo htmlspecialchars($old['name']) ?>" required>
+                            <?php if ($errors['name'] !== ""): ?>
+                                <span class="error">
+                                    <?php echo htmlspecialchars($errors['name']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="Email Address"
+                                value="<?php echo htmlspecialchars($old['email']) ?>" required>
+                            <?php if ($errors['email'] !== ""): ?>
+                                <span class="error">
+                                    <?php echo htmlspecialchars($errors['email']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
+                            <input type="tel" id="phone" name="phone" placeholder="Phone Number"
+                                value="<?php echo htmlspecialchars($old['phone']) ?>" required>
+                            <?php if ($errors['phone'] !== ""): ?>
+                                <span class="error">
+                                    <?php echo htmlspecialchars($errors['phone']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="password" name="password" placeholder="Password" required>
+                            <?php if ($errors['password'] !== ""): ?>
+                                <span class="error">
+                                    <?php echo htmlspecialchars($errors['password']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="confirmpassword" name="confirmpassword"
+                                placeholder="Confirm Password" required>
+                            <?php if ($errors['confirmpassword'] !== ""): ?>
+                                <span class="error">
+                                    <?php echo htmlspecialchars($errors['confirmpassword']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="terms">
+                            <input type="checkbox" id="terms" name="terms" required>
+                            <label for="terms"> I agree to the <span>Terms & Conditions</span> and <span>Privacy
+                                    Policy</span>.
+                            </label>
+                        </div>
+                        <button class="btn">Create Account</button>
+                        <div class="divider">
+                            <span></span>
+                            <p>or</p>
+                            <span></span>
+                        </div>
+                        <button type="button" class="google-btn">
+                            <img src="../assets/images/google-logo.png" alt="Google" class="google-icon">
+                            <span>Continue with
+                                Google</span>
+                        </button>
+                        <p class="auth-switch">Already have an Account? <span>Log in</span></p>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div>
-            <input type="email" id="email" name="email" placeholder="Email Address" required>
-        </div>
-        <div>
-            <input type="tel" id="phone" name="phone" placeholder="Phone Number" required>
-        </div>
-        <div>
-            <input type="password" id="password" name="password" placeholder="Password" required>
-        </div>
-        <div>
-            <input type="password" id="confirmpassword" name="confirmpassword" placeholder="Confirm Password" required>
-        </div>
-        <div class="terms">
-            <input type="checkbox" id="terms" name="terms" required>
-            <label for="terms"> I agree to the Terms & Conditions and Privacy Policy.
-            </label>
-        </div>
-        <button>Create Account</button>
-    </form>
+    </div>
+
+
 </body>
 
 </html>

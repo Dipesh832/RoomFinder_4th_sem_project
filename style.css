@@ -1,5 +1,401 @@
+/* =========================
+   Global Reset
+========================= */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* =========================
+   Design Variables
+========================= */
+
+:root {
+  --primary-color: #10b981;
+
+  --heading-font: "Saira Semi Condensed", sans-serif;
+  --general-font: "Inter", sans-serif;
+
+  --border-color: #cbd5e1;
+  --text-color: #334155;
+  --error-color: #ef4444;
+  --placeholder-color: #94a3b8;
+
+  --container-radius: 24px;
+}
+
+/* =========================
+   Global Elements
+========================= */
+
+body {
+  font-family: var(--general-font);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+/* =========================
+   auth Container
+========================= */
+
+.auth-container {
+  width: 100%;
+  min-height: 100vh;
+
+  background-color: white;
+
+  padding: 40px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* =========================
+   Main auth Card
+========================= */
+
+.auth-container-content {
+  width: 100%;
+  max-width: 1224px;
+
+  min-height: 800px;
+
+  display: flex;
+
+  border-radius: var(--container-radius);
+  overflow: hidden;
+
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* =========================
+   Left Section
+========================= */
+
+.auth-left {
+  flex: 0 0 40%;
+
+  background-color: var(--primary-color);
+
+  padding: 20px;
+}
+
+/* =========================
+   Right Section
+========================= */
+
+.auth-right {
+  flex: 1;
+
+  background-color: white;
+
+  padding: 40px;
+  display:  flex;
+  align-items: center;
+}
+
+/* =========================
+   Right Content
+========================= */
+
+.auth-right-content {
+  width: 100%;
+  max-width: 460px;
+
+  margin: 0 auto;
+}
+
+/* =========================
+   auth-header
+========================= */
+
+.auth-right .auth-header {
+  margin-bottom: 32px;
+}
+
+.auth-right .auth-header h1 {
+  margin-bottom: 8px;
+
+  font-family: var(--heading-font);
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.auth-right .auth-header p {
+  font-family: var(--general-font);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+/* =========================
+   Form
+========================= */
+
+.auth-form {
+  width: 100%;
+}
+
+.form-group {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* =========================
+   Inputs
+========================= */
+
+.form-group input {
+  width: 100%;
+  height: 56px;
+
+  padding: 10px 20px;
+
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+
+  font-family: var(--general-font);
+  font-size: 16px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form-group input::placeholder {
+  color: var(--placeholder-color);
+  opacity: 1;
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color);
+
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+/* =========================
+   Error Message
+========================= */
+
+.form-group .error {
+  display: block;
+
+  margin-top: 6px;
+
+  color: var(--error-color);
+  font-size: 14px;
+}
+
+/* =========================
+   Terms
+========================= */
+
+.terms {
+  margin-block: 20px;
+}
+
+.terms label {
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.terms label span {
+  color: var(--primary-color);
+}
+
+/* =========================
+   Button
+========================= */
+
+.auth-form .btn {
+  width: 100%;
+  height: 56px;
+
+  border: none;
+  border-radius: 12px;
+
+  background-color: var(--primary-color);
+
+  color: white;
+
+  font-family: var(--general-font);
+  font-size: 16px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.auth-form .btn:hover {
+  opacity: 0.9;
+}
+
+.auth-form .btn:active {
+  transform: scale(0.99);
+}
+
+.google-btn {
+  width: 100%;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  cursor: pointer;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.google-btn img {
+  height: 24px;
+  width: 24px;
+}
+.google-btn span {
+  color: var(--text-color);
+  font-weight: 600;
+}
+.google-btn:hover {
+  background-color: #fcfcfc;
+}
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 20px;
+  }
+
+  .auth-container-content {
+    flex-direction: column;
+
+    min-height: auto;
+  }
+
+  .auth-left {
+    flex: none;
+
+    width: 100%;
+    min-height: 300px;
+  }
+
+  .auth-right {
+    width: 100%;
+
+    padding: 30px 20px;
+  }
+
+  .auth-right .auth-header h1 {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 10px;
+  }
+
+  .auth-container-content {
+    border-radius: 16px;
+  }
+
+  .auth-left {
+    min-height: 220px;
+  }
+
+  .auth-right {
+    padding: 24px 16px;
+  }
+
+  .auth-right .auth-headerr h1 {
+    font-size: 28px;
+  }
+
+  .form-group input,
+  .auth-form .btn {
+    height: 52px;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 20px;
+}
+
+.divider span {
+  height: 1px;
+  background-color: var(--border-color);
+  flex: 1;
+}
+.divider p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.auth-switch {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  margin-block: 24px;
+}
+.auth-switch span {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.auth-left-content {
+  padding: 20px 40px;
+}
+
+.auth-left-content .brand-logo {
+  font-size: 32px;
+  font-family: var(--heading-font);
+  color: white;
+  font-weight: 700;
+  margin-bottom: 64px;
+}
+.auth-left .hero-content {
+  color: white;
+}
+
+.auth-left .hero-content h1 {
+  font-size: 42px;
+  font-family: var(--heading-font);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.auth-left .hero-content p {
+  color: #d1fae5;
+  font-size: 16px;
+  margin-bottom: 56px;
+}
+
+.auth-left .hero-content img {
+  height: 100%;
+  width: 100%;
+  max-width: 360px;
+  max-height: 300px;
 }
