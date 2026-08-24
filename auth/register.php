@@ -204,7 +204,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <span></span>
                         </div>
                         <button type="button" class="google-btn">
-                            <img src="../assets/images/google-logo.png" alt="Google" class="google-icon">
+                            <img src="../assets/images/google-logo.svg" alt="Google" class="google-icon">
                             <span>Continue with
                                 Google</span>
                         </button>
