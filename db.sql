@@ -26,6 +26,7 @@ CREATE TABLE rooms (
     location VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     room_type VARCHAR(50) NOT NULL,
+    facilities TEXT NULL,
     image VARCHAR(255),
     status ENUM('available', 'booked') DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
