@@ -35,7 +35,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if (empty($name)) {
         $errors['name'] = "This field is required";
-    }
+    } elseif (!preg_match('/^[\p{L}\s]+$/u', $name)) {
+        $errors['name'] = "Name can only contain letters and spaces";
+    }   
 
     if (empty($email)) {
         $errors['email'] = "This field is required";
@@ -147,6 +149,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <h1 class="form-heading">Create an Account</h1>
                         <p class="form-subheading">Join RoomFinder and find your perfect room today.</p>
                     </div>
+                    <?= messages() ?>
                     <form class="auth-form" action="" method="POST">
                         <div class="form-group">
                             <input type="text" id="name" name="name" placeholder="Full Name"

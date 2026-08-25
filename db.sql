@@ -10,6 +10,9 @@ CREATE TABLE users (
     phone VARCHAR(15) NOT NULL ,
     password VARCHAR(255) NOT NULL,
     role ENUM('tenant', 'owner', 'admin') NOT NULL DEFAULT 'tenant',
+    remember_token VARCHAR(255) NULL,
+    remember_expires_at DATETIME NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
