@@ -330,7 +330,7 @@ ul {
     padding: 24px 16px;
   }
 
-  .auth-right .auth-headerr h1 {
+  .auth-right .auth-header h1 {
     font-size: 28px;
   }
 
@@ -482,7 +482,7 @@ ul {
   height: 100%;
   max-width: 340px;
   max-height: 385px;
-  border: 1px solid --border-light;
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 20px 40px;
 }
@@ -575,3 +575,9 @@ ul {
   accent-color: var(--primary-color);
   cursor: pointer;
 }
+
+.otp-timer {
+  font-size: 14px;
+  color: var(--muted-text-color);
+  margin-bottom: 16px;
+} 

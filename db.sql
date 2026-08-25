@@ -12,7 +12,8 @@ CREATE TABLE users (
     role ENUM('tenant', 'owner', 'admin') NOT NULL DEFAULT 'tenant',
     remember_token VARCHAR(255) NULL,
     remember_expires_at DATETIME NULL,
-
+    reset_token VARCHAR(64) NULL,
+    reset_expires_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
