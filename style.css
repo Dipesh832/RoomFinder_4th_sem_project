@@ -14,13 +14,21 @@
 
 :root {
   --primary-color: #10b981;
+  --primary-light: #d1fae5;
+  --primary-dark: #059669;
 
   --heading-font: "Saira Semi Condensed", sans-serif;
   --general-font: "Inter", sans-serif;
 
   --border-color: #cbd5e1;
+  --border-light: #e2e8f0;
+
   --text-color: #334155;
   --error-color: #ef4444;
+
+  --heading-color: #0f172a;
+
+  --muted-text-color: #64748b;
   --placeholder-color: #94a3b8;
 
   --container-radius: 24px;
@@ -271,9 +279,7 @@ ul {
   color: var(--text-color);
   font-weight: 600;
 }
-.google-btn:hover {
-  background-color: #fcfcfc;
-}
+
 /* =========================
    Responsive
 ========================= */
@@ -348,17 +354,17 @@ ul {
 }
 .divider p {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--placeholder-color);
   margin: 0;
 }
 
 .auth-switch {
-  color: #64748b;
+  color: var(--muted-text-color);
   font-size: 14px;
   text-align: center;
   margin-block: 24px;
 }
-.auth-switch span {
+.auth-switch a {
   color: var(--primary-color);
   font-weight: 600;
 }
@@ -386,7 +392,7 @@ ul {
 }
 
 .auth-left .hero-content p {
-  color: #d1fae5;
+  color: var(--primary-light);
   font-size: 16px;
   margin-bottom: 56px;
 }
@@ -436,14 +442,14 @@ ul {
   font-size: 36px;
   font-weight: 700;
   font-family: var(--heading-font);
-  color: #0f172a;
+  color: var(--heading-color);
   margin-bottom: 12px;
 }
 
 .account-type-header p {
   font-size: 16px;
   font-weight: 400;
-  color: #64748b;
+  color: var(--muted-text-color);
   margin-bottom: 56px;
 }
 
@@ -452,7 +458,7 @@ ul {
   height: 100%;
   max-width: 340px;
   max-height: 385px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid --border-light;
   border-radius: 20px;
   padding: 20px 40px;
 }
@@ -467,7 +473,7 @@ ul {
 .account-type-card p {
   font-size: 16px;
   font-weight: 400;
-  color: #64748b;
+  color: var(--muted-text-color);
   margin-bottom: 46px;
 }
 
@@ -496,7 +502,7 @@ ul {
   width: 80px;
   border-radius: 100%;
   border: none;
-  background-color: #d1fae5;
+  background-color: var(--primary-light);
   margin-bottom: 24px;
   display: flex;
   align-items: center;
@@ -509,7 +515,7 @@ ul {
   width: 48px;
 }
 
-.account-type-options{
+.account-type-options {
   display: flex;
   justify-content: center;
   gap: 40px;

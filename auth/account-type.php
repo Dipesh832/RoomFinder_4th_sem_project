@@ -1,3 +1,9 @@
+<?php
+
+    require_once __DIR__ . "/../config/config.php";
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -25,8 +31,8 @@
                         </div>
                         <h2>Tenant</h2>
                         <p>Find and book verified rooms across Nepal with ease.</p>
-                        <button class="account-type-btn">Continue as Tenant <img src="../assets/icons/move-right.svg"
-                                alt="right-arrow"></button>
+                        <a href="<?= base_url('auth/register?role=tenant') ?>" class="account-type-btn">Continue as Tenant
+                            <img src="../assets/icons/move-right.svg" alt="right-arrow"></a>
                     </div>
                     <div class="account-type-card owner">
                         <div class="icon-container">
@@ -34,8 +40,8 @@
                         </div>
                         <h2>Owner</h2>
                         <p>List your rooms,manage bookings, and connect with tenants.</p>
-                        <button class="account-type-btn">Continue as Owner <img src="../assets/icons/move-right.svg"
-                                alt="right-arrow"></button>
+                        <a href="<?= base_url('auth/register?role=owner') ?>" class="account-type-btn">Continue as Owner <img
+                                src="../assets/icons/move-right.svg" alt="right-arrow"></a>
                     </div>
 
                 </div>

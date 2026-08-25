@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../config/config.php";
 
 $role = $_GET["role"] ?? "";
 
 if ($role !== "owner" && $role !== "tenant") {
-    header("Location:account-type.php");
-    exit;
+    redirect("auth/account-type");
 }
 
 $errors = [
@@ -99,7 +99,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if (mysqli_stmt_execute($stmt)) {
 
-            echo "Registration successful.";
+            $_SESSION['success'] = "Registration successful. Please login.";
+            redirect("auth/login");
 
         } else {
 
@@ -196,6 +197,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <label for="terms"> I agree to the <span>Terms & Conditions</span> and <span>Privacy
                                     Policy</span>.
                             </label>
+                            <?php if ($errors['terms'] !== ""): ?>
+                                <span class="error">
+                                    <?= htmlspecialchars($errors['terms']) ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <button class="btn">Create Account</button>
                         <div class="divider">
@@ -208,7 +214,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <span>Continue with
                                 Google</span>
                         </button>
-                        <p class="auth-switch">Already have an Account? <span>Log in</span></p>
+                        <p class="auth-switch">Already have an Account? <a href="<?= base_url('auth/login') ?>">Log
+                                in</a></p>
                     </form>
                 </div>
             </div>
