@@ -36,4 +36,4 @@ $_SESSION = [];
 
 session_destroy();
 
-redirect('auth/login');
+redirect('/');
