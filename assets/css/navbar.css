@@ -80,6 +80,7 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  position: relative;
 }
 
 .profile-avatar {
@@ -106,4 +107,107 @@
 .profile-arrow {
   color: #334155;
   font-size: 24px;
+}
+
+/* =========================
+   Profile Dropdown
+========================= */
+
+.profile-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 180px;
+
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.profile-dropdown.open {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 18px;
+
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+
+  transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f1f5f9;
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
+}
+
+.dropdown-item-logout {
+  color: #ef4444;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dropdown-item-logout:hover {
+  background-color: #fef2f2;
+}
+
+/* =========================
+   Navbar Auth Buttons (Landing)
+========================= */
+
+.navbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 9px 20px;
+
+  border-radius: 8px;
+
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.navbar-btn-login {
+  color: #10b981;
+  border: 1px solid #10b981;
+  background: transparent;
+}
+
+.navbar-btn-login:hover {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.navbar-btn-register {
+  color: #ffffff;
+  background: #10b981;
+  border: 1px solid #10b981;
+}
+
+.navbar-btn-register:hover {
+  background: #059669;
+  border-color: #059669;
 }
