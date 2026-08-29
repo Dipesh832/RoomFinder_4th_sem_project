@@ -1,0 +1,464 @@
+/* ========================================
+   OWNER DASHBOARD
+========================================= */
+
+.owner-dashboard {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+/* ========================================
+   HERO SECTION
+========================================= */
+
+.owner-hero {
+  padding: 70px 20px 65px;
+  text-align: center;
+}
+
+.owner-hero-container {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+/* Welcome Badge */
+
+.owner-welcome {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 18px;
+
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  border-radius: 999px;
+
+  color: #059669;
+  font-size: 15px;
+  font-weight: 600;
+
+  margin-bottom: 24px;
+}
+
+/* Heading */
+
+.owner-hero-title {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: clamp(38px, 5vw, 58px);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+
+.owner-hero-title span {
+  color: #10b981;
+}
+
+/* Description */
+
+.owner-hero-description {
+  max-width: 620px;
+  margin: 22px auto 0;
+
+  color: #64748b;
+
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+/* Button */
+
+.owner-hero-action {
+  margin-top: 32px;
+}
+
+.add-room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  padding: 13px 22px;
+
+  background: #10b981;
+  color: #ffffff;
+
+  border: none;
+  border-radius: 8px;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-room-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
+}
+
+.add-room-btn:active {
+  transform: translateY(0);
+}
+
+/* Plus Icon */
+
+.add-room-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   OWNER HERO RESPONSIVE
+========================================= */
+
+@media (max-width: 768px) {
+  .owner-hero {
+    padding: 55px 20px 50px;
+  }
+
+  .owner-welcome {
+    font-size: 14px;
+    padding: 9px 16px;
+    margin-bottom: 20px;
+  }
+
+  .owner-hero-title {
+    font-size: 40px;
+    letter-spacing: -1px;
+  }
+
+  .owner-hero-description {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-top: 18px;
+  }
+
+  .owner-hero-action {
+    margin-top: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .owner-hero {
+    padding: 45px 16px 45px;
+  }
+
+  .owner-hero-title {
+    font-size: 34px;
+  }
+
+  .owner-hero-description {
+    font-size: 15px;
+  }
+
+  .add-room-btn {
+    width: 100%;
+    max-width: 220px;
+  }
+}
+
+/* ========================================
+   YOUR ACTIVITY SECTION
+========================================= */
+
+.activity-section {
+  width: 100%;
+  padding: 45px 20px 70px;
+  background: #f8fafc;
+}
+
+.activity-container {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+/* ========================================
+   ACTIVITY HEADER
+========================================= */
+
+.activity-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.activity-title {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.activity-subtitle {
+  margin: 14px 0 0;
+
+  color: #64748b;
+
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   ACTIVITY GRID
+========================================= */
+
+.activity-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 32px;
+
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ========================================
+   ACTIVITY CARD
+========================================= */
+
+.activity-card {
+  min-height: 170px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 28px 36px;
+
+  background: #ffffff;
+
+  border: 1px solid #dbe3ed;
+  border-radius: 18px;
+
+  text-decoration: none;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 8px 20px rgba(15, 23, 42, 0.04);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.activity-card:hover {
+  transform: translateY(-3px);
+
+  border-color: #cbd5e1;
+
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+}
+
+/* ========================================
+   ACTIVITY ICON
+========================================= */
+
+.activity-icon {
+  width: 82px;
+  height: 82px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #e6faf4;
+
+  border-radius: 16px;
+
+  color: #10b981;
+}
+
+.activity-icon svg {
+  width: 52px;
+  height: 52px;
+}
+
+/* ========================================
+   ACTIVITY CONTENT
+========================================= */
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+
+  margin-left: 22px;
+
+  min-width: 0;
+}
+
+.activity-number {
+  color: #111827;
+
+  font-size: 40px;
+  line-height: 1.05;
+  font-weight: 800;
+}
+
+.activity-label {
+  margin-top: 6px;
+
+  color: #64748b;
+
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* ========================================
+   ACTIVITY ARROW
+========================================= */
+
+.activity-arrow {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-left: auto;
+
+  flex-shrink: 0;
+
+  color: #10b981;
+}
+
+.activity-arrow svg {
+  width: 25px;
+  height: 25px;
+}
+
+/* ========================================
+   ACTIVITY RESPONSIVE - TABLET
+========================================= */
+
+@media (max-width: 1000px) {
+  .activity-grid {
+    grid-template-columns: 1fr;
+    max-width: 700px;
+  }
+
+  .activity-card {
+    min-height: 150px;
+  }
+}
+
+/* ========================================
+   ACTIVITY RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .activity-section {
+    padding: 35px 16px 55px;
+  }
+
+  .activity-header {
+    margin-bottom: 28px;
+  }
+
+  .activity-title {
+    font-size: 30px;
+  }
+
+  .activity-subtitle {
+    font-size: 15px;
+  }
+
+  .activity-grid {
+    gap: 16px;
+  }
+
+  .activity-card {
+    min-height: 125px;
+
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .activity-icon {
+    width: 62px;
+    height: 62px;
+
+    border-radius: 13px;
+  }
+
+  .activity-icon svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .activity-content {
+    margin-left: 15px;
+  }
+
+  .activity-number {
+    font-size: 30px;
+  }
+
+  .activity-label {
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
+  .activity-arrow {
+    width: 22px;
+    height: 22px;
+  }
+
+  .activity-arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ========================================
+   ACTIVITY RESPONSIVE - VERY SMALL
+========================================= */
+
+@media (max-width: 380px) {
+  .activity-card {
+    padding: 16px;
+  }
+
+  .activity-icon {
+    width: 55px;
+    height: 55px;
+  }
+
+  .activity-icon svg {
+    width: 35px;
+    height: 35px;
+  }
+
+  .activity-content {
+    margin-left: 12px;
+  }
+
+  .activity-number {
+    font-size: 27px;
+  }
+
+  .activity-label {
+    font-size: 13px;
+  }
+}

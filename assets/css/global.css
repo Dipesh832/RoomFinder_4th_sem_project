@@ -1,0 +1,52 @@
+/* =========================
+   Global Reset
+========================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =========================
+   Design Variables
+========================= */
+
+:root {
+  --primary-color: #10b981;
+  --primary-light: #d1fae5;
+  --primary-dark: #059669;
+
+  --heading-font: "Saira Semi Condensed", sans-serif;
+  --general-font: "Inter", sans-serif;
+
+  --border-color: #cbd5e1;
+  --border-light: #e2e8f0;
+
+  --text-color: #334155;
+  --error-color: #ef4444;
+
+  --heading-color: #0f172a;
+
+  --muted-text-color: #64748b;
+  --placeholder-color: #94a3b8;
+
+  --container-radius: 24px;
+}
+
+/* =========================
+   Global Elements
+========================= */
+
+body {
+  font-family: var(--general-font);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}

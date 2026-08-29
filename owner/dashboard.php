@@ -16,7 +16,9 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
 
     <title>Owner Dashboard | RoomFinder</title>
 
-    <link rel="stylesheet" href="../style.css?v=1.1">
+    <link rel="stylesheet" href="../assets/css/global.css">
+    <link rel="stylesheet" href="../assets/css/navbar.css">
+    <link rel="stylesheet" href="../assets/css/owner.css">
 
 
 </head>
