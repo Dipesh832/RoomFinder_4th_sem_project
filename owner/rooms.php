@@ -53,19 +53,24 @@ $stmt->close();
 
     <?php include '../includes/navbar.php'; ?>
 
-    <main class="owner-page">
+    <main class="owner-rooms-page">
 
         <section class="rooms-section">
 
-            <div class="section-header">
+            <div class="rooms-header">
 
-                <div>
-                    <h1>My Rooms</h1>
-                    <p>Manage the rooms you have listed on RoomFinder.</p>
+                <div class="rooms-header-text">
+                    <h1 class="rooms-heading">My Rooms</h1>
+                    <p class="rooms-subtitle">Manage the rooms you have listed on RoomFinder.</p>
                 </div>
 
-                <a href="add-room.php" class="btn btn-primary">
-                    + Add Room
+                <a href="add-room.php" class="add-room-btn">
+                    <svg class="add-room-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true">
+                        <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    Add Room
                 </a>
 
             </div>
@@ -73,24 +78,41 @@ $stmt->close();
 
             <?php if (empty($rooms)): ?>
 
-                <div class="empty-state">
+                <div class="rooms-empty">
 
-                    <h2>No rooms listed yet</h2>
+                    <div class="rooms-empty-icon">
 
-                    <p>
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 10.5L12 3L21 10.5" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M5 9.5V20H19V9.5" stroke="currentColor" stroke-width="1.8"
+                                stroke-linejoin="round" />
+                            <path d="M9 20V14H15V20" fill="currentColor" />
+                        </svg>
+
+                    </div>
+
+                    <h2 class="rooms-empty-title">No rooms listed yet</h2>
+
+                    <p class="rooms-empty-text">
                         You haven't added any rooms yet.
                         Start by adding your first room.
                     </p>
 
-                    <a href="add-room.php" class="btn btn-primary">
-                        + Add Your First Room
+                    <a href="add-room.php" class="add-room-btn">
+                        <svg class="add-room-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true">
+                            <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Add Your First Room
                     </a>
 
                 </div>
 
             <?php else: ?>
 
-                <div class="rooms-grid">
+                <div class="my-rooms-grid">
 
                     <?php foreach ($rooms as $room): ?>
 
@@ -106,7 +128,7 @@ $stmt->close();
 
                             <?php else: ?>
 
-                                <div class="room-card-image room-card-image-placeholder">
+                                <div class="room-card-image room-card-placeholder">
                                     No Image
                                 </div>
 
@@ -117,7 +139,7 @@ $stmt->close();
 
                                 <div class="room-card-top">
 
-                                    <h2>
+                                    <h2 class="room-card-title">
                                         <?= htmlspecialchars($room['title']) ?>
                                     </h2>
 
@@ -127,52 +149,13 @@ $stmt->close();
 
                                 </div>
 
-
-                                <p class="room-location">
+                                <p class="room-card-location">
                                     <?= htmlspecialchars($room['location']) ?>
                                 </p>
 
-
-                                <p class="room-type">
-                                    <?= htmlspecialchars($room['room_type']) ?>
-                                </p>
-
-
-                                <div class="room-price">
+                                <div class="room-card-price">
                                     Rs. <?= number_format((float) $room['price'], 2) ?>
                                     <span>/ month</span>
-                                </div>
-
-
-                                <p class="room-description">
-                                    <?= htmlspecialchars($room['description']) ?>
-                                </p>
-
-
-                                <div class="room-card-actions">
-
-                                    <a
-                                        href="view-room.php?id=<?= (int) $room['id'] ?>"
-                                        class="btn btn-secondary"
-                                    >
-                                        View
-                                    </a>
-
-                                    <a
-                                        href="edit-room.php?id=<?= (int) $room['id'] ?>"
-                                        class="btn btn-secondary"
-                                    >
-                                        Edit
-                                    </a>
-
-                                    <button
-                                        type="button"
-                                        class="btn btn-danger"
-                                        onclick="confirmDelete(<?= (int) $room['id'] ?>)"
-                                    >
-                                        Delete
-                                    </button>
-
                                 </div>
 
                             </div>
@@ -188,19 +171,6 @@ $stmt->close();
         </section>
 
     </main>
-
-
-    <script>
-        function confirmDelete(roomId) {
-            const confirmed = confirm(
-                'Are you sure you want to delete this room?'
-            );
-
-            if (confirmed) {
-                window.location.href = 'delete-room.php?id=' + roomId;
-            }
-        }
-    </script>
 
 </body>
 </html>

@@ -378,10 +378,6 @@ $stmt->close();
 
                         <p>You haven't added any rooms yet.</p>
 
-                        <a href="add-room.php" class="add-room-btn">
-                            + Add Your First Room
-                        </a>
-
                     </div>
 
                 <?php else: ?>

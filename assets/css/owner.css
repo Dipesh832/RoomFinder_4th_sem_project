@@ -464,6 +464,111 @@
 }
 
 /* ========================================
+   OWNER ROOMS PAGE
+========================================= */
+
+.owner-rooms-page {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+.rooms-section {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 50px 20px 80px;
+}
+
+/* ========================================
+   ROOMS PAGE HEADER
+========================================= */
+
+.rooms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  margin-bottom: 40px;
+}
+
+.rooms-header-text {
+  min-width: 0;
+}
+
+.rooms-heading {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.rooms-subtitle {
+  margin: 10px 0 0;
+
+  color: #64748b;
+
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   ROOMS EMPTY STATE
+========================================= */
+
+.rooms-empty {
+  text-align: center;
+  padding: 80px 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #dbe3ed;
+  border-radius: 18px;
+}
+
+.rooms-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 80px;
+  height: 80px;
+
+  background: #e6faf4;
+  border-radius: 16px;
+
+  color: #10b981;
+
+  margin-bottom: 24px;
+}
+
+.rooms-empty-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.rooms-empty-title {
+  margin: 0 0 10px;
+
+  color: #111827;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.rooms-empty-text {
+  margin: 0 0 28px;
+
+  color: #64748b;
+
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ========================================
    MY ROOMS SECTION
 ========================================= */
 
@@ -728,6 +833,24 @@
 ========================================= */
 
 @media (max-width: 600px) {
+  .rooms-section {
+    padding: 35px 16px 55px;
+  }
+
+  .rooms-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .rooms-heading {
+    font-size: 30px;
+  }
+
+  .rooms-subtitle {
+    font-size: 15px;
+  }
+
   .my-rooms-section {
     padding: 35px 16px 55px;
   }
@@ -774,5 +897,219 @@
     grid-template-columns: 1fr;
     max-width: 400px;
     margin: 0 auto;
+  }
+}
+
+/* ========================================
+   ADD ROOM PAGE
+========================================= */
+
+.owner-add-room-page {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+.add-room-section {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 50px 20px 80px;
+}
+
+/* ========================================
+   ADD ROOM HEADER
+========================================= */
+
+.add-room-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.add-room-heading {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.add-room-subtitle {
+  margin: 10px 0 0;
+
+  color: #64748b;
+
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   ADD ROOM FORM
+========================================= */
+
+.add-room-form {
+  background: #ffffff;
+
+  border: 1px solid #dbe3ed;
+  border-radius: 18px;
+  padding: 36px 40px;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+/* ========================================
+   FORM GROUP
+========================================= */
+
+.add-room-form .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 22px;
+}
+
+.add-room-form label {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.add-room-form .optional {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.add-room-form input[type="text"],
+.add-room-form input[type="number"],
+.add-room-form input[type="url"],
+.add-room-form textarea,
+.add-room-form select {
+  width: 100%;
+  padding: 12px 16px;
+
+  background: #f8fafc;
+  border: 1px solid #dbe3ed;
+  border-radius: 10px;
+
+  color: #111827;
+  font-size: 15px;
+  font-family: inherit;
+
+  outline: none;
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-room-form input:focus,
+.add-room-form textarea:focus,
+.add-room-form select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.add-room-form input::placeholder,
+.add-room-form textarea::placeholder {
+  color: #94a3b8;
+}
+
+.add-room-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.add-room-form select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+/* ========================================
+   FORM ROW (2 columns)
+========================================= */
+
+.add-room-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ========================================
+   ERROR MESSAGE
+========================================= */
+
+.add-room-form .error {
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+/* ========================================
+   FORM ACTIONS
+========================================= */
+
+.add-room-form .form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.add-room-form .btn-cancel {
+  padding: 12px 22px;
+
+  background: transparent;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.add-room-form .btn-cancel:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+/* ========================================
+   ADD ROOM FORM RESPONSIVE
+========================================= */
+
+@media (max-width: 600px) {
+  .add-room-section {
+    padding: 35px 16px 55px;
+  }
+
+  .add-room-heading {
+    font-size: 30px;
+  }
+
+  .add-room-subtitle {
+    font-size: 15px;
+  }
+
+  .add-room-form {
+    padding: 24px 20px;
+  }
+
+  .add-room-form .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
