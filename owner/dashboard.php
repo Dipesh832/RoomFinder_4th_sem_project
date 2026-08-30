@@ -2,9 +2,82 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../middleware/require_owner.php';
-?>
-<?php
+
 $userName = $_SESSION['user']['name'] ?? 'Owner';
+$ownerId = $_SESSION['user']['id'] ?? 0;
+
+
+/*
+ * Fetch active rooms count
+ */
+
+$stmt = $conn->prepare("
+    SELECT COUNT(*) AS active_rooms
+    FROM rooms
+    WHERE owner_id = ?
+");
+
+$stmt->bind_param("i", $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$activeRooms = (int) ($result->fetch_assoc()['active_rooms'] ?? 0);
+
+$stmt->close();
+
+
+/*
+ * Fetch pending booking requests
+ *
+ * bookings does not contain owner_id.
+ * We connect bookings -> rooms using room_id.
+ */
+
+$stmt = $conn->prepare("
+    SELECT COUNT(*) AS pending_requests
+    FROM bookings
+    INNER JOIN rooms
+        ON bookings.room_id = rooms.id
+    WHERE rooms.owner_id = ?
+      AND bookings.status = 'pending'
+");
+
+$stmt->bind_param("i", $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$pendingRequests = (int) ($result->fetch_assoc()['pending_requests'] ?? 0);
+
+$stmt->close();
+
+
+/*
+ * Fetch rooms for "My Rooms" section
+ */
+
+$stmt = $conn->prepare("
+    SELECT
+        id,
+        title,
+        description,
+        location,
+        price,
+        room_type,
+        image,
+        status,
+        created_at
+    FROM rooms
+    WHERE owner_id = ?
+    ORDER BY created_at DESC
+");
+
+$stmt->bind_param("i", $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$rooms = $result->fetch_all(MYSQLI_ASSOC);
+
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -19,7 +92,6 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/navbar.css">
     <link rel="stylesheet" href="../assets/css/owner.css">
-
 
 </head>
 
@@ -87,27 +159,9 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
         </section>
 
 
-        <!--
-        ========================================
-        NEXT DASHBOARD SECTION
-        ========================================
-
-        We will add the dashboard statistics/cards
-        here next.
-
-        Example:
-
-        - Total Rooms
-        - Available Rooms
-        - Booked Rooms
-        - Pending Requests
-
-        ========================================
-        -->
-
         <!-- ========================================
-     YOUR ACTIVITY SECTION
-======================================== -->
+             YOUR ACTIVITY SECTION
+        ========================================= -->
 
         <section class="activity-section">
 
@@ -134,8 +188,8 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
 
 
                     <!-- ========================================
-                 ACTIVE ROOMS
-            ========================================= -->
+                         ACTIVE ROOMS
+                    ========================================= -->
 
                     <a href="rooms.php" class="activity-card">
 
@@ -159,7 +213,7 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
                         <div class="activity-content">
 
                             <span class="activity-number">
-                                3
+                                <?= $activeRooms ?>
                             </span>
 
                             <span class="activity-label">
@@ -185,8 +239,8 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
 
 
                     <!-- ========================================
-                 BOOKING REQUESTS
-            ========================================= -->
+                         BOOKING REQUESTS
+                    ========================================= -->
 
                     <a href="bookings.php" class="activity-card">
 
@@ -211,7 +265,7 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
                         <div class="activity-content">
 
                             <span class="activity-number">
-                                2
+                                <?= $pendingRequests ?>
                             </span>
 
                             <span class="activity-label">
@@ -237,8 +291,8 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
 
 
                     <!-- ========================================
-                 NEW MESSAGES
-            ========================================= -->
+                         NEW MESSAGE
+                    ========================================= -->
 
                     <a href="messages.php" class="activity-card">
 
@@ -265,7 +319,7 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
                         <div class="activity-content">
 
                             <span class="activity-number">
-                                3
+                                0
                             </span>
 
                             <span class="activity-label">
@@ -293,6 +347,126 @@ $userName = $_SESSION['user']['name'] ?? 'Owner';
             </div>
 
         </section>
+
+
+        <!-- ========================================
+             MY ROOMS SECTION
+        ========================================= -->
+
+        <section class="my-rooms-section">
+
+            <div class="my-rooms-container">
+
+                <!-- Section Header -->
+
+                <div class="my-rooms-header">
+
+                    <h2 class="my-rooms-title">
+                        My Rooms
+                    </h2>
+
+                    <p class="my-rooms-subtitle">
+                        Rooms you have listed on RoomFinder
+                    </p>
+
+                </div>
+
+
+                <?php if (empty($rooms)): ?>
+
+                    <div class="my-rooms-empty">
+
+                        <p>You haven't added any rooms yet.</p>
+
+                        <a href="add-room.php" class="add-room-btn">
+                            + Add Your First Room
+                        </a>
+
+                    </div>
+
+                <?php else: ?>
+
+                    <!-- Room Cards -->
+
+                    <div class="my-rooms-grid">
+
+                        <?php foreach ($rooms as $room): ?>
+
+                            <article class="room-card">
+
+                                <?php if (!empty($room['image'])): ?>
+
+                                    <img
+                                        src="<?= htmlspecialchars($room['image']) ?>"
+                                        alt="<?= htmlspecialchars($room['title']) ?>"
+                                        class="room-card-image"
+                                    >
+
+                                <?php else: ?>
+
+                                    <div class="room-card-image room-card-placeholder">
+                                        No Image
+                                    </div>
+
+                                <?php endif; ?>
+
+
+                                <div class="room-card-content">
+
+                                    <div class="room-card-top">
+
+                                        <h3 class="room-card-title">
+                                            <?= htmlspecialchars($room['title']) ?>
+                                        </h3>
+
+                                        <span class="room-status <?= $room['status'] === 'available' ? 'available' : 'booked' ?>">
+                                            <?= htmlspecialchars(ucfirst($room['status'])) ?>
+                                        </span>
+
+                                    </div>
+
+                                    <p class="room-card-location">
+                                        <?= htmlspecialchars($room['location']) ?>
+                                    </p>
+
+                                    <div class="room-card-price">
+                                        Rs. <?= number_format((float) $room['price'], 2) ?>
+                                        <span>/ month</span>
+                                    </div>
+
+                                </div>
+
+                            </article>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+
+                <!-- View All Link -->
+
+                <?php if (count($rooms) > 0): ?>
+
+                    <div class="my-rooms-footer">
+
+                        <a href="rooms.php" class="view-all-link">
+                            View All My Rooms
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </a>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
+
+        </section>
+
     </main>
 
 </body>
