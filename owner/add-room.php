@@ -105,9 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if (mysqli_stmt_execute($stmt)) {
+            $stmt->close();
             $_SESSION['success'] = "Room added successfully.";
             redirect("owner/rooms");
         } else {
+            $stmt->close();
             $errors['title'] = "Something went wrong. Please try again.";
         }
     }
