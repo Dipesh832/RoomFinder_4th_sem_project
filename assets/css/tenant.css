@@ -3,3 +3,87 @@
 ========================================= */
 
 /* Tenant-specific styles will go here */
+
+/* ========================================
+   TENANT BROWSE ROOMS PAGE
+========================================= */
+
+.tenant-rooms-page {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+/* ========================================
+   ROOM CARD - ADDITIONAL DETAILS
+========================================= */
+
+.room-card-type {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.room-card-facilities {
+  margin: 0;
+
+  color: #059669;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.room-card-description {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ========================================
+   ROOM CARD ACTIONS
+========================================= */
+
+.room-card-actions {
+  margin-top: 6px;
+}
+
+.request-booking-btn {
+  width: 100%;
+
+  padding: 11px 20px;
+
+  background: #10b981;
+  color: #ffffff;
+
+  border: none;
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+
+  cursor: pointer;
+
+  transition: background-color 0.2s ease;
+}
+
+.request-booking-btn:hover {
+  background: #059669;
+}
+
+/* ========================================
+   TENANT ROOMS RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .room-card-type,
+  .room-card-facilities,
+  .room-card-description {
+    font-size: 13px;
+  }
+}
