@@ -80,10 +80,83 @@
    TENANT ROOMS RESPONSIVE - MOBILE
 ========================================= */
 
+/* ========================================
+   TENANT BOOKINGS PAGE
+========================================= */
+
+.tenant-bookings-page {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+/* ========================================
+   BOOKING STATUS BADGE
+========================================= */
+
+.booking-status {
+  flex-shrink: 0;
+
+  padding: 4px 12px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.booking-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.booking-status.approved {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.booking-status.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ========================================
+   BOOKING DATES
+========================================= */
+
+.booking-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  margin-top: 4px;
+}
+
+.booking-date-item {
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.booking-date-item strong {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* ========================================
+   TENANT RESPONSIVE - MOBILE
+========================================= */
+
 @media (max-width: 600px) {
   .room-card-type,
   .room-card-facilities,
   .room-card-description {
     font-size: 13px;
+  }
+
+  .booking-date-item {
+    font-size: 12px;
   }
 }

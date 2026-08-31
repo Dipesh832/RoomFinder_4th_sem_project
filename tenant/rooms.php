@@ -152,7 +152,7 @@ $stmt->close();
                                     <?= htmlspecialchars($room['description']) ?>
                                 </p>
 
-                                <form action="book-room.php" method="POST" class="room-card-actions">
+                                <form action="<?=base_url('tenant/book-room') ?>" method="POST" class="room-card-actions">
                                     <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
                                     <button type="submit" class="request-booking-btn">
                                         Request Booking
