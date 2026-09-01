@@ -1113,3 +1113,322 @@
     gap: 0;
   }
 }
+
+/* ========================================
+   OWNER BOOKINGS PAGE
+========================================= */
+
+.owner-bookings-page {
+  min-height: calc(100vh - 76px);
+  background: #ecfdf5;
+}
+
+/* ========================================
+   BOOKINGS LIST
+========================================= */
+
+.bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ========================================
+   BOOKING REQUEST CARD
+========================================= */
+
+.booking-request-card {
+  display: flex;
+  gap: 0;
+
+  background: #ffffff;
+
+  border: 1px solid #dbe3ed;
+  border-radius: 18px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 8px 20px rgba(15, 23, 42, 0.04);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.booking-request-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #cbd5e1;
+
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+}
+
+/* ========================================
+   BOOKING REQUEST ROOM (Left)
+========================================= */
+
+.booking-request-room {
+  display: flex;
+  flex-direction: column;
+
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.booking-request-image {
+  width: 100%;
+  height: 200px;
+
+  object-fit: cover;
+
+  display: block;
+}
+
+.booking-request-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f1f5f9;
+
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.booking-request-room-info {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.booking-request-title {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.booking-request-location {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.booking-request-price {
+  color: #111827;
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.booking-request-price span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.booking-request-type {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ========================================
+   BOOKING REQUEST DETAILS (Right)
+========================================= */
+
+.booking-request-details {
+  flex: 1;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0;
+
+  min-width: 0;
+}
+
+.booking-request-details > div {
+  padding: 20px 24px;
+  border-left: 1px solid #f1f5f9;
+}
+
+.booking-request-details > div:first-child {
+  border-left: none;
+}
+
+.booking-request-section-title {
+  margin: 0 0 12px;
+
+  color: #111827;
+
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ========================================
+   TENANT INFO
+========================================= */
+
+.booking-request-tenant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.booking-request-tenant-name {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.booking-request-tenant-email,
+.booking-request-tenant-phone {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ========================================
+   BOOKING STATUS BADGE
+========================================= */
+
+.booking-status {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 6px 14px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.booking-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.booking-status.approved {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.booking-status.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ========================================
+   BOOKING DATES
+========================================= */
+
+.booking-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.booking-date-item {
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.booking-date-item strong {
+  color: #334155;
+  font-weight: 600;
+}
+
+/* ========================================
+   BOOKINGS RESPONSIVE - TABLET
+========================================= */
+
+@media (max-width: 1000px) {
+  .booking-request-card {
+    flex-direction: column;
+  }
+
+  .booking-request-room {
+    width: 100%;
+  }
+
+  .booking-request-details {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .booking-request-details > div:last-child {
+    border-left: 1px solid #f1f5f9;
+    grid-column: 1 / -1;
+    border-top: 1px solid #f1f5f9;
+    border-left: none;
+  }
+}
+
+/* ========================================
+   BOOKINGS RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .bookings-list {
+    gap: 16px;
+  }
+
+  .booking-request-image {
+    height: 180px;
+  }
+
+  .booking-request-room-info {
+    padding: 16px 20px;
+  }
+
+  .booking-request-title {
+    font-size: 16px;
+  }
+
+  .booking-request-price {
+    font-size: 18px;
+  }
+
+  .booking-request-details {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-request-details > div {
+    padding: 14px 20px;
+    border-left: none;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .booking-request-details > div:first-child {
+    border-top: none;
+  }
+}
