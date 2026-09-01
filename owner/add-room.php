@@ -5,6 +5,12 @@ require_once __DIR__ . '/../middleware/require_owner.php';
 
 $ownerId = $_SESSION['user']['id'] ?? 0;
 
+$uploadDir = __DIR__ . '/../assets/uploads/rooms/';
+
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
 $errors = [
     'title'       => '',
     'description' => '',
@@ -23,7 +29,6 @@ $old = [
     'price'       => '',
     'room_type'   => '',
     'facilities'  => '',
-    'image'       => '',
     'status'      => 'available',
 ];
 
@@ -35,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price       = trim($_POST['price'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
-    $image       = trim($_POST['image'] ?? '');
     $status      = $_POST['status'] ?? 'available';
 
     $old['title']       = $title;
@@ -44,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['price']       = $price;
     $old['room_type']   = $roomType;
     $old['facilities']  = $facilities;
-    $old['image']       = $image;
     $old['status']      = $status;
 
     if (empty($title)) {
@@ -75,8 +78,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['status'] = "Invalid status value";
     }
 
-    if (!empty($image) && !filter_var($image, FILTER_VALIDATE_URL)) {
-        $errors['image'] = "Please enter a valid URL";
+    $uploadedFilePath = null;
+
+    if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
+
+        $file     = $_FILES['image'];
+        $tmpName  = $file['tmp_name'];
+        $fileSize = $file['size'];
+        $fileErr  = $file['error'];
+
+        if ($fileErr !== UPLOAD_ERR_OK) {
+            $errors['image'] = "File upload failed. Please try again.";
+        } else {
+
+            $maxSize = 5 * 1024 * 1024;
+            if ($fileSize > $maxSize) {
+                $errors['image'] = "Image must be 5 MB or less.";
+            }
+
+            if ($errors['image'] === '') {
+
+                $finfo    = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->file($tmpName);
+
+                $allowedMimes = [
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                ];
+
+                if (!in_array($mimeType, $allowedMimes, true)) {
+                    $errors['image'] = "Only JPG, PNG, and WEBP images are allowed.";
+                }
+            }
+
+            if ($errors['image'] === '') {
+
+                $extMap = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp',
+                ];
+
+                $ext        = $extMap[$mimeType];
+                $uniqueName = 'room_' . bin2hex(random_bytes(16)) . '.' . $ext;
+                $destPath   = $uploadDir . $uniqueName;
+
+                if (move_uploaded_file($tmpName, $destPath)) {
+                    $uploadedFilePath = 'assets/uploads/rooms/' . $uniqueName;
+                } else {
+                    $errors['image'] = "Failed to save the uploaded image.";
+                }
+            }
+        }
     }
 
     if (!array_filter($errors)) {
@@ -88,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = mysqli_prepare($conn, $sql);
 
         $facilitiesDb = $facilities !== '' ? $facilities : null;
-        $imageDb       = $image !== '' ? $image : null;
+        $imageDb       = $uploadedFilePath;
 
         mysqli_stmt_bind_param(
             $stmt,
@@ -110,7 +164,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect("owner/rooms");
         } else {
             $stmt->close();
+            if ($uploadedFilePath !== null && file_exists(__DIR__ . '/../' . $uploadedFilePath)) {
+                unlink(__DIR__ . '/../' . $uploadedFilePath);
+            }
             $errors['title'] = "Something went wrong. Please try again.";
+        }
+    } else {
+        if ($uploadedFilePath !== null && file_exists(__DIR__ . '/../' . $uploadedFilePath)) {
+            unlink(__DIR__ . '/../' . $uploadedFilePath);
         }
     }
 }
@@ -154,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?= messages() ?>
 
 
-                <form class="add-room-form" action="" method="POST" novalidate>
+                <form class="add-room-form" action="" method="POST" enctype="multipart/form-data" novalidate>
 
 
                     <!-- Room Title -->
@@ -289,21 +350,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
 
-                    <!-- Image URL & Status (side by side) -->
+                    <!-- Room Image & Status (side by side) -->
 
                     <div class="form-row">
 
                         <div class="form-group">
 
-                            <label for="image">Image URL <span class="optional">(optional)</span></label>
+                            <label for="image">Room Image <span class="optional">(optional)</span></label>
 
                             <input
-                                type="url"
+                                type="file"
                                 id="image"
                                 name="image"
-                                placeholder="https://example.com/room.jpg"
-                                value="<?= htmlspecialchars($old['image']) ?>"
+                                accept="image/jpeg,image/png,image/webp"
                             >
+
+                            <span class="field-hint">JPG, PNG, or WEBP. Max 5 MB.</span>
 
                             <?php if ($errors['image'] !== ''): ?>
                                 <span class="error"><?= htmlspecialchars($errors['image']) ?></span>

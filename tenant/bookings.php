@@ -115,7 +115,7 @@ $stmt->close();
                             <?php if (!empty($booking['image'])): ?>
 
                                 <img
-                                    src="<?= htmlspecialchars($booking['image']) ?>"
+                                    src="<?= htmlspecialchars(base_url($booking['image'])) ?>"
                                     alt="<?= htmlspecialchars($booking['title']) ?>"
                                     class="room-card-image"
                                 >

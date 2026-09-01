@@ -393,7 +393,7 @@ $stmt->close();
                                 <?php if (!empty($room['image'])): ?>
 
                                     <img
-                                        src="<?= htmlspecialchars($room['image']) ?>"
+                                        src="<?= htmlspecialchars(base_url($room['image'])) ?>"
                                         alt="<?= htmlspecialchars($room['title']) ?>"
                                         class="room-card-image"
                                     >
