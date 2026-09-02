@@ -52,6 +52,45 @@ $stmt->close();
 
 
 /*
+ * Fetch recent booking requests for the dashboard preview.
+ *
+ * bookings does not contain owner_id.
+ * We connect bookings -> rooms using room_id.
+ */
+
+$stmt = $conn->prepare("
+    SELECT
+        bookings.id,
+        bookings.status,
+        bookings.booking_date,
+        bookings.created_at,
+        rooms.id AS room_id,
+        rooms.title,
+        rooms.location,
+        rooms.price,
+        rooms.room_type,
+        users.id AS tenant_id,
+        users.name AS tenant_name
+    FROM bookings
+    INNER JOIN rooms
+        ON bookings.room_id = rooms.id
+    INNER JOIN users
+        ON bookings.tenant_id = users.id
+    WHERE rooms.owner_id = ?
+    ORDER BY bookings.created_at DESC
+    LIMIT 5
+");
+
+$stmt->bind_param("i", $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$recentBookings = $result->fetch_all(MYSQLI_ASSOC);
+
+$stmt->close();
+
+
+/*
  * Fetch rooms for "My Rooms" section
  */
 
@@ -349,6 +388,7 @@ $stmt->close();
         </section>
 
 
+
         <!-- ========================================
              MY ROOMS SECTION
         ========================================= -->
@@ -392,11 +432,8 @@ $stmt->close();
 
                                 <?php if (!empty($room['image'])): ?>
 
-                                    <img
-                                        src="<?= htmlspecialchars(base_url($room['image'])) ?>"
-                                        alt="<?= htmlspecialchars($room['title']) ?>"
-                                        class="room-card-image"
-                                    >
+                                    <img src="<?= htmlspecialchars(base_url($room['image'])) ?>"
+                                        alt="<?= htmlspecialchars($room['title']) ?>" class="room-card-image">
 
                                 <?php else: ?>
 
@@ -415,7 +452,8 @@ $stmt->close();
                                             <?= htmlspecialchars($room['title']) ?>
                                         </h3>
 
-                                        <span class="room-status <?= $room['status'] === 'available' ? 'available' : 'booked' ?>">
+                                        <span
+                                            class="room-status <?= $room['status'] === 'available' ? 'available' : 'booked' ?>">
                                             <?= htmlspecialchars(ucfirst($room['status'])) ?>
                                         </span>
 
@@ -450,14 +488,143 @@ $stmt->close();
                         <a href="rooms.php" class="view-all-link">
                             View All My Rooms
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.8"
-                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M9 5L16 12L9 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round" />
                             </svg>
                         </a>
 
                     </div>
 
                 <?php endif; ?>
+
+            </div>
+
+        </section>
+
+        <!-- ========================================
+             BOOKING REQUESTS SECTION
+        ========================================= -->
+
+        <section class="dashboard-bookings-section">
+
+            <div class="dashboard-bookings-container">
+
+                <div class="dashboard-bookings-header">
+                    <h2 class="dashboard-bookings-title">Booking Requests</h2>
+                    <p class="dashboard-bookings-subtitle">Recent requests from tenants</p>
+                </div>
+
+                <?php if (empty($recentBookings)): ?>
+
+                    <div class="dashboard-bookings-empty">
+                        <p>No booking requests yet.</p>
+                    </div>
+
+                <?php else: ?>
+
+                    <div class="dashboard-bookings-list">
+
+                        <?php foreach ($recentBookings as $booking): ?>
+
+                            <?php
+                            $tenantInitial = strtoupper(mb_substr($booking['tenant_name'], 0, 1));
+                            ?>
+
+                            <article class="dashboard-booking-card">
+
+                                <div class="db-card-avatar">
+                                    <span>
+                                        <?= htmlspecialchars($tenantInitial) ?>
+                                    </span>
+                                </div>
+
+                                <div class="db-card-body">
+
+                                    <div class="db-card-top">
+                                        <span class="db-card-name">
+                                            <?= htmlspecialchars($booking['tenant_name']) ?>
+                                        </span>
+
+                                        <?php if ($booking['status'] === 'pending'): ?>
+                                            <span class="booking-status pending">
+                                                <span class="status-dot"></span>Pending
+                                            </span>
+                                        <?php elseif ($booking['status'] === 'approved'): ?>
+                                            <span class="booking-status approved">Approved</span>
+                                        <?php else: ?>
+                                            <span class="booking-status rejected">Rejected</span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="db-card-info">
+                                        <span class="db-card-type">
+                                            <?= htmlspecialchars($booking['room_type']) ?>
+                                        </span>
+                                        <span class="db-card-separator">&middot;</span>
+                                        <span class="db-card-location">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                                <circle cx="12" cy="10" r="3" />
+                                            </svg>
+                                            <?= htmlspecialchars($booking['location']) ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="db-card-meta">
+                                        <span class="db-card-date">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                                <line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" />
+                                                <line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                            <?= date('M j, Y', strtotime($booking['booking_date'])) ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="db-card-price">
+                                        Rs.
+                                        <?= number_format((float) $booking['price'], 0) ?>
+                                        <span>/ Month</span>
+                                    </div>
+
+                                </div>
+
+                                <?php if ($booking['status'] === 'pending'): ?>
+                                    <div class="db-card-actions">
+                                        <form method="POST" action="booking-action.php">
+                                            <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
+                                            <input type="hidden" name="action" value="reject">
+                                            <button type="submit" class="db-btn-decline">Decline</button>
+                                        </form>
+                                        <form method="POST" action="booking-action.php">
+                                            <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="db-btn-accept">Accept</button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
+
+                            </article>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+                <div class="dashboard-bookings-footer">
+                    <a href="bookings.php" class="dashboard-view-all-link">
+                        View All Requests
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </a>
+                </div>
 
             </div>
 

@@ -901,6 +901,407 @@
 }
 
 /* ========================================
+   DASHBOARD BOOKING REQUESTS SECTION
+========================================= */
+
+.dashboard-bookings-section {
+  width: 100%;
+  padding: 50px 20px 70px;
+  background: #f8fafc;
+}
+
+.dashboard-bookings-container {
+  max-width: 740px;
+  margin: 0 auto;
+}
+
+/* ========================================
+   DASHBOARD BOOKINGS HEADER
+========================================= */
+
+.dashboard-bookings-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.dashboard-bookings-title {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.dashboard-bookings-subtitle {
+  margin: 8px 0 0;
+
+  color: #64748b;
+
+  font-size: 16px;
+}
+
+/* ========================================
+   DASHBOARD BOOKINGS EMPTY
+========================================= */
+
+.dashboard-bookings-empty {
+  text-align: center;
+  padding: 60px 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.dashboard-bookings-empty p {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 15px;
+}
+
+/* ========================================
+   DASHBOARD BOOKINGS LIST
+========================================= */
+
+.dashboard-bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD
+========================================= */
+
+.dashboard-booking-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  background: #ffffff;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 24px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dashboard-booking-card:hover {
+  border-color: #cbd5e1;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD AVATAR
+========================================= */
+
+.db-card-avatar {
+  width: 48px;
+  height: 48px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #10b981;
+  border-radius: 50%;
+
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD BODY
+========================================= */
+
+.db-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.db-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.db-card-name {
+  color: #111827;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ========================================
+   DASHBOARD BOOKING STATUS BADGE
+========================================= */
+
+.booking-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 4px 12px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.booking-status .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.booking-status.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.booking-status.pending .status-dot {
+  background: #f59e0b;
+}
+
+.booking-status.approved {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.booking-status.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD INFO ROW
+========================================= */
+
+.db-card-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.db-card-type {
+  color: #475569;
+  font-size: 13px;
+}
+
+.db-card-separator {
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.db-card-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  color: #059669;
+  font-size: 13px;
+}
+
+.db-card-location svg {
+  flex-shrink: 0;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD META
+========================================= */
+
+.db-card-meta {
+  display: flex;
+  align-items: center;
+}
+
+.db-card-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #64748b;
+  font-size: 13px;
+}
+
+.db-card-date svg {
+  flex-shrink: 0;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD PRICE
+========================================= */
+
+.db-card-price {
+  color: #10b981;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.db-card-price span {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ========================================
+   DASHBOARD BOOKING CARD ACTIONS
+========================================= */
+
+.db-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.db-btn-accept,
+.db-btn-decline {
+  padding: 8px 20px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.db-btn-accept {
+  background: #10b981;
+  border: none;
+  color: #ffffff;
+}
+
+.db-btn-accept:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.db-btn-decline {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.db-btn-decline:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* ========================================
+   DASHBOARD VIEW ALL LINK
+========================================= */
+
+.dashboard-bookings-footer {
+  text-align: center;
+  margin-top: 32px;
+}
+
+.dashboard-view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #10b981;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+
+  transition: gap 0.2s ease;
+}
+
+.dashboard-view-all-link:hover {
+  gap: 10px;
+}
+
+.dashboard-view-all-link svg {
+  flex-shrink: 0;
+}
+
+/* ========================================
+   DASHBOARD BOOKINGS RESPONSIVE - TABLET
+========================================= */
+
+@media (max-width: 768px) {
+  .dashboard-bookings-section {
+    padding: 35px 16px 55px;
+  }
+
+  .dashboard-bookings-title {
+    font-size: 26px;
+  }
+
+  .dashboard-bookings-subtitle {
+    font-size: 15px;
+  }
+
+  .dashboard-booking-card {
+    padding: 18px 20px;
+  }
+}
+
+/* ========================================
+   DASHBOARD BOOKINGS RESPONSIVE - MOBILE
+========================================= */
+
+@media (max-width: 540px) {
+  .dashboard-booking-card {
+    flex-wrap: wrap;
+  }
+
+  .db-card-body {
+    min-width: 0;
+    flex: 1 1 calc(100% - 64px);
+  }
+
+  .db-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+
+    padding-top: 14px;
+    margin-top: 6px;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .db-btn-accept,
+  .db-btn-decline {
+    flex: 1;
+    text-align: center;
+    padding: 10px 16px;
+  }
+
+  .dashboard-bookings-footer {
+    margin-top: 24px;
+  }
+}
+
+/* ========================================
    ADD ROOM PAGE
 ========================================= */
 
