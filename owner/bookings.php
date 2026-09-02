@@ -215,6 +215,26 @@ $stmt->close();
                                         <?= htmlspecialchars(ucfirst($booking['status'])) ?>
                                     </span>
 
+                                    <?php if ($booking['status'] === 'pending'): ?>
+
+                                        <div class="booking-actions">
+
+                                            <form method="POST" action="booking-action.php">
+                                                <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
+                                                <input type="hidden" name="action" value="approve">
+                                                <button type="submit" class="booking-btn booking-btn-approve">Approve</button>
+                                            </form>
+
+                                            <form method="POST" action="booking-action.php">
+                                                <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
+                                                <input type="hidden" name="action" value="reject">
+                                                <button type="submit" class="booking-btn booking-btn-reject">Reject</button>
+                                            </form>
+
+                                        </div>
+
+                                    <?php endif; ?>
+
                                 </div>
 
                             </div>

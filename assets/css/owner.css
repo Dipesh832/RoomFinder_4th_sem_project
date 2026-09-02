@@ -1373,6 +1373,55 @@
 }
 
 /* ========================================
+   BOOKING ACTION BUTTONS
+========================================= */
+
+.booking-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.booking-btn {
+  padding: 8px 18px;
+
+  border: none;
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.booking-btn-approve {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.booking-btn-approve:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.booking-btn-reject {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.booking-btn-reject:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+/* ========================================
    BOOKING DATES
 ========================================= */
 
@@ -1456,5 +1505,9 @@
 
   .booking-request-details > div:first-child {
     border-top: none;
+  }
+
+  .booking-actions {
+    margin-top: 12px;
   }
 }
