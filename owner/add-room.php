@@ -19,7 +19,6 @@ $errors = [
     'room_type'   => '',
     'facilities'  => '',
     'image'       => '',
-    'status'      => '',
 ];
 
 $old = [
@@ -29,7 +28,6 @@ $old = [
     'price'       => '',
     'room_type'   => '',
     'facilities'  => '',
-    'status'      => 'available',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -40,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price       = trim($_POST['price'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
-    $status      = $_POST['status'] ?? 'available';
 
     $old['title']       = $title;
     $old['description'] = $description;
@@ -48,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['price']       = $price;
     $old['room_type']   = $roomType;
     $old['facilities']  = $facilities;
-    $old['status']      = $status;
 
     if (empty($title)) {
         $errors['title'] = "Room title is required";
@@ -72,10 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($roomType)) {
         $errors['room_type'] = "Room type is required";
-    }
-
-    if ($status !== 'available' && $status !== 'booked') {
-        $errors['status'] = "Invalid status value";
     }
 
     $uploadedFilePath = null;
@@ -143,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $facilitiesDb = $facilities !== '' ? $facilities : null;
         $imageDb       = $uploadedFilePath;
+        $status        = 'available';
 
         mysqli_stmt_bind_param(
             $stmt,
@@ -350,56 +343,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
 
-                    <!-- Room Image & Status (side by side) -->
+                    <!-- Room Image -->
 
-                    <div class="form-row">
+                    <div class="form-group">
 
-                        <div class="form-group">
+                        <label for="image">Room Image <span class="optional">(optional)</span></label>
 
-                            <label for="image">Room Image <span class="optional">(optional)</span></label>
+                        <input
+                            type="file"
+                            id="image"
+                            name="image"
+                            accept="image/jpeg,image/png,image/webp"
+                        >
 
-                            <input
-                                type="file"
-                                id="image"
-                                name="image"
-                                accept="image/jpeg,image/png,image/webp"
-                            >
+                        <span class="field-hint">JPG, PNG, or WEBP. Max 5 MB.</span>
 
-                            <span class="field-hint">JPG, PNG, or WEBP. Max 5 MB.</span>
-
-                            <?php if ($errors['image'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['image']) ?></span>
-                            <?php endif; ?>
-
-                        </div>
-
-                        <div class="form-group">
-
-                            <label for="status">Status</label>
-
-                            <select id="status" name="status">
-
-                                <option
-                                    value="available"
-                                    <?= $old['status'] === 'available' ? 'selected' : '' ?>
-                                >
-                                    Available
-                                </option>
-
-                                <option
-                                    value="booked"
-                                    <?= $old['status'] === 'booked' ? 'selected' : '' ?>
-                                >
-                                    Booked
-                                </option>
-
-                            </select>
-
-                            <?php if ($errors['status'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['status']) ?></span>
-                            <?php endif; ?>
-
-                        </div>
+                        <?php if ($errors['image'] !== ''): ?>
+                            <span class="error"><?= htmlspecialchars($errors['image']) ?></span>
+                        <?php endif; ?>
 
                     </div>
 
