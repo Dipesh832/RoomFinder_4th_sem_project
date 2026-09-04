@@ -7,12 +7,16 @@
   height: 76px;
   background: #ffffff;
   border-bottom: 1px solid #eeeeee;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .navbar-container {
   max-width: 1224px;
   height: 100%;
   margin: 0 auto;
+  padding: 0 20px;
 
   display: flex;
   align-items: center;

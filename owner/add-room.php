@@ -182,6 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/navbar.css">
     <link rel="stylesheet" href="../assets/css/owner.css">
+    <link rel="stylesheet" href="../assets/css/footer.css">
 </head>
 
 <body>
@@ -386,6 +387,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </section>
 
     </main>
+
+    <?php include '../includes/footer.php'; ?>
 
 </body>
 

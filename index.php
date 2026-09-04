@@ -14,6 +14,7 @@ require_once "config/database.php";
 
     <link rel="stylesheet" href="assets/css/global.css">
     <link rel="stylesheet" href="assets/css/navbar.css">
+    <link rel="stylesheet" href="assets/css/footer.css">
 
 </head>
 
@@ -22,6 +23,8 @@ require_once "config/database.php";
     <?php include 'includes/navbar.php'; ?>
 
     <h1>landing page</h1>
+
+    <?php include 'includes/footer.php'; ?>
 
 </body>
 

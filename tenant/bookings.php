@@ -49,6 +49,7 @@ $stmt->close();
     <link rel="stylesheet" href="../assets/css/navbar.css">
     <link rel="stylesheet" href="../assets/css/owner.css">
     <link rel="stylesheet" href="../assets/css/tenant.css">
+    <link rel="stylesheet" href="../assets/css/footer.css">
 </head>
 
 <body>
@@ -180,6 +181,8 @@ $stmt->close();
         </section>
 
     </main>
+
+    <?php include '../includes/footer.php'; ?>
 
 </body>
 </html>

@@ -131,6 +131,7 @@ $stmt->close();
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/navbar.css">
     <link rel="stylesheet" href="../assets/css/owner.css">
+    <link rel="stylesheet" href="../assets/css/footer.css">
 
 </head>
 
@@ -631,6 +632,8 @@ $stmt->close();
         </section>
 
     </main>
+
+    <?php include '../includes/footer.php'; ?>
 
 </body>
 

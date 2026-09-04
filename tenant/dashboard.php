@@ -19,6 +19,7 @@ $userName = $_SESSION['user']['name'] ?? 'Tenant';
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/navbar.css">
     <link rel="stylesheet" href="../assets/css/tenant.css">
+    <link rel="stylesheet" href="../assets/css/footer.css">
 
 </head>
 
@@ -29,6 +30,8 @@ $userName = $_SESSION['user']['name'] ?? 'Tenant';
     <main class="tenant-dashboard">
         <h1>Welcome, <?= htmlspecialchars($userName) ?></h1>
     </main>
+
+    <?php include '../includes/footer.php'; ?>
 
 </body>
 
