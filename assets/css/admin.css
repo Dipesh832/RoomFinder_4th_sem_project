@@ -32,7 +32,7 @@
 
 .admin-layout {
   display: flex;
-  min-height: calc(100vh - 76px);
+  min-height: 100vh;
   background: #f1f5f9;
 }
 

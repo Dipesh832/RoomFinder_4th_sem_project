@@ -47,8 +47,6 @@ if ($stmt) {
 
 <body>
 
-    <?php include '../includes/navbar.php'; ?>
-
     <div class="admin-layout">
 
         <?php include __DIR__ . '/sidebar.php'; ?>

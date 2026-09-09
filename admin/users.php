@@ -94,8 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 <body>
 
-    <?php include '../includes/navbar.php'; ?>
-
     <div class="admin-layout">
 
         <?php include __DIR__ . '/sidebar.php'; ?>
