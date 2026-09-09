@@ -76,9 +76,11 @@ if ($page > $totalPages) {
 $dataSql = "SELECT
     r.id,
     r.title,
+    r.description,
     r.location,
     r.price,
     r.room_type,
+    r.facilities,
     r.image,
     r.status,
     r.created_at,
@@ -127,6 +129,330 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     header("Location: " . base_url('admin/rooms'));
     exit;
 }
+
+// ─── Load owners for dropdowns ──────────────────────────────────
+$ownersStmt = $conn->query("SELECT id, name FROM users WHERE role = 'owner' ORDER BY name ASC");
+$owners = [];
+if ($ownersStmt) {
+    $owners = $ownersStmt->fetch_all(MYSQLI_ASSOC);
+    $ownersStmt->close();
+}
+
+$ownerIds = [];
+foreach ($owners as $o) {
+    $ownerIds[] = (int) $o['id'];
+}
+
+// ─── Upload directory setup ─────────────────────────────────────
+$uploadDir = __DIR__ . '/../assets/uploads/rooms/';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
+// ─── Helper: process room image upload ──────────────────────────
+function processRoomImageUpload() {
+    global $uploadDir;
+
+    if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
+        return ['path' => null, 'error' => ''];
+    }
+
+    $file    = $_FILES['image'];
+    $tmpName = $file['tmp_name'];
+    $fileErr = $file['error'];
+    $fileSize = $file['size'];
+
+    if ($fileErr !== UPLOAD_ERR_OK) {
+        return ['path' => null, 'error' => 'File upload failed. Please try again.'];
+    }
+
+    $maxSize = 2 * 1024 * 1024;
+    if ($fileSize > $maxSize) {
+        return ['path' => null, 'error' => 'Image must be 2 MB or less.'];
+    }
+
+    $finfo    = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($tmpName);
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!in_array($mimeType, $allowedMimes, true)) {
+        return ['path' => null, 'error' => 'Only JPG, PNG, and WEBP images are allowed.'];
+    }
+
+    $extMap = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    $ext        = $extMap[$mimeType];
+    $uniqueName = 'room_' . bin2hex(random_bytes(16)) . '.' . $ext;
+    $destPath   = $uploadDir . $uniqueName;
+
+    if (move_uploaded_file($tmpName, $destPath)) {
+        return ['path' => 'assets/uploads/rooms/' . $uniqueName, 'error' => ''];
+    }
+
+    return ['path' => null, 'error' => 'Failed to save the uploaded image.'];
+}
+
+// ─── CREATE ROOM ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_room') {
+    $addOwnerId   = (int) ($_POST['owner_id'] ?? 0);
+    $addTitle     = trim($_POST['title'] ?? '');
+    $addDesc      = trim($_POST['description'] ?? '');
+    $addLocation  = trim($_POST['location'] ?? '');
+    $addPrice     = trim($_POST['price'] ?? '');
+    $addRoomType  = trim($_POST['room_type'] ?? '');
+    $addFacilities= trim($_POST['facilities'] ?? '');
+    $addStatus    = $_POST['status'] ?? 'available';
+
+    $addErrors = [];
+
+    if ($addOwnerId <= 0 || !in_array($addOwnerId, $ownerIds, true)) {
+        $addErrors[] = 'Please select a valid owner.';
+    }
+
+    if ($addTitle === '') {
+        $addErrors[] = 'Title is required.';
+    } elseif (strlen($addTitle) > 150) {
+        $addErrors[] = 'Title must be 150 characters or fewer.';
+    }
+
+    if ($addDesc === '') {
+        $addErrors[] = 'Description is required.';
+    }
+
+    if ($addLocation === '') {
+        $addErrors[] = 'Location is required.';
+    }
+
+    if ($addPrice === '') {
+        $addErrors[] = 'Price is required.';
+    } elseif (!is_numeric($addPrice) || (float) $addPrice < 0) {
+        $addErrors[] = 'Price must be a non-negative number.';
+    }
+
+    if ($addRoomType === '') {
+        $addErrors[] = 'Room type is required.';
+    }
+
+    if (!in_array($addStatus, $allowedStatuses, true)) {
+        $addStatus = 'available';
+    }
+
+    $uploadResult = ['path' => null, 'error' => ''];
+    if (empty($addErrors)) {
+        $uploadResult = processRoomImageUpload();
+        if ($uploadResult['error'] !== '') {
+            $addErrors[] = $uploadResult['error'];
+        }
+    }
+
+    if (!empty($addErrors)) {
+        $_SESSION['error'] = implode(' ', $addErrors);
+        $_SESSION['old_add'] = [
+            'owner_id'   => $addOwnerId,
+            'title'      => $addTitle,
+            'description'=> $addDesc,
+            'location'   => $addLocation,
+            'price'      => $addPrice,
+            'room_type'  => $addRoomType,
+            'facilities' => $addFacilities,
+            'status'     => $addStatus,
+        ];
+        header("Location: " . base_url('admin/rooms'));
+        exit;
+    }
+
+    $facilitiesDb = $addFacilities !== '' ? $addFacilities : null;
+    $imageDb      = $uploadResult['path'];
+
+    $insStmt = $conn->prepare("INSERT INTO rooms (owner_id, title, description, location, price, room_type, facilities, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $insStmt->bind_param("isssdssss", $addOwnerId, $addTitle, $addDesc, $addLocation, $addPrice, $addRoomType, $facilitiesDb, $imageDb, $addStatus);
+
+    if ($insStmt->execute()) {
+        $insStmt->close();
+        $_SESSION['success'] = 'Room added successfully.';
+        unset($_SESSION['old_add']);
+    } else {
+        $insStmt->close();
+        if ($imageDb !== null && file_exists(__DIR__ . '/../' . $imageDb)) {
+            unlink(__DIR__ . '/../' . $imageDb);
+        }
+        $_SESSION['error'] = 'Something went wrong. Please try again.';
+        $_SESSION['old_add'] = [
+            'owner_id'   => $addOwnerId,
+            'title'      => $addTitle,
+            'description'=> $addDesc,
+            'location'   => $addLocation,
+            'price'      => $addPrice,
+            'room_type'  => $addRoomType,
+            'facilities' => $addFacilities,
+            'status'     => $addStatus,
+        ];
+    }
+
+    header("Location: " . base_url('admin/rooms'));
+    exit;
+}
+
+// ─── UPDATE ROOM ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_room') {
+    $editRoomId    = (int) ($_POST['room_id'] ?? 0);
+    $editOwnerId   = (int) ($_POST['owner_id'] ?? 0);
+    $editTitle     = trim($_POST['title'] ?? '');
+    $editDesc      = trim($_POST['description'] ?? '');
+    $editLocation  = trim($_POST['location'] ?? '');
+    $editPrice     = trim($_POST['price'] ?? '');
+    $editRoomType  = trim($_POST['room_type'] ?? '');
+    $editFacilities= trim($_POST['facilities'] ?? '');
+    $editStatus    = $_POST['status'] ?? 'available';
+
+    $editErrors = [];
+
+    if ($editRoomId <= 0) {
+        $editErrors[] = 'Invalid room ID.';
+    }
+
+    if ($editOwnerId <= 0 || !in_array($editOwnerId, $ownerIds, true)) {
+        $editErrors[] = 'Please select a valid owner.';
+    }
+
+    if ($editTitle === '') {
+        $editErrors[] = 'Title is required.';
+    } elseif (strlen($editTitle) > 150) {
+        $editErrors[] = 'Title must be 150 characters or fewer.';
+    }
+
+    if ($editDesc === '') {
+        $editErrors[] = 'Description is required.';
+    }
+
+    if ($editLocation === '') {
+        $editErrors[] = 'Location is required.';
+    }
+
+    if ($editPrice === '') {
+        $editErrors[] = 'Price is required.';
+    } elseif (!is_numeric($editPrice) || (float) $editPrice < 0) {
+        $editErrors[] = 'Price must be a non-negative number.';
+    }
+
+    if ($editRoomType === '') {
+        $editErrors[] = 'Room type is required.';
+    }
+
+    if (!in_array($editStatus, $allowedStatuses, true)) {
+        $editStatus = 'available';
+    }
+
+    if (!empty($editErrors)) {
+        $_SESSION['error'] = implode(' ', $editErrors);
+        $_SESSION['old_edit'] = [
+            'id'         => $editRoomId,
+            'owner_id'   => $editOwnerId,
+            'title'      => $editTitle,
+            'description'=> $editDesc,
+            'location'   => $editLocation,
+            'price'      => $editPrice,
+            'room_type'  => $editRoomType,
+            'facilities' => $editFacilities,
+            'status'     => $editStatus,
+        ];
+        header("Location: " . base_url('admin/rooms'));
+        exit;
+    }
+
+    $uploadResult = ['path' => null, 'error' => ''];
+    $uploadResult = processRoomImageUpload();
+
+    if ($uploadResult['error'] !== '') {
+        $_SESSION['error'] = $uploadResult['error'];
+        $_SESSION['old_edit'] = [
+            'id'         => $editRoomId,
+            'owner_id'   => $editOwnerId,
+            'title'      => $editTitle,
+            'description'=> $editDesc,
+            'location'   => $editLocation,
+            'price'      => $editPrice,
+            'room_type'  => $editRoomType,
+            'facilities' => $editFacilities,
+            'status'     => $editStatus,
+        ];
+        header("Location: " . base_url('admin/rooms'));
+        exit;
+    }
+
+    $facilitiesDb = $editFacilities !== '' ? $editFacilities : null;
+    $newImageDb   = $uploadResult['path'];
+
+    if ($newImageDb !== null) {
+        $oldImgStmt = $conn->prepare("SELECT image FROM rooms WHERE id = ?");
+        $oldImgStmt->bind_param("i", $editRoomId);
+        $oldImgStmt->execute();
+        $oldImgRow = $oldImgStmt->get_result()->fetch_assoc();
+        $oldImgStmt->close();
+
+        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, room_type = ?, facilities = ?, image = ?, status = ? WHERE id = ?");
+        $updStmt->bind_param("isssdssssi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editRoomType, $facilitiesDb, $newImageDb, $editStatus, $editRoomId);
+
+        if ($updStmt->execute()) {
+            $updStmt->close();
+            if ($oldImgRow && !empty($oldImgRow['image'])) {
+                $oldPath = __DIR__ . '/../' . $oldImgRow['image'];
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
+            }
+            $_SESSION['success'] = 'Room updated successfully.';
+            unset($_SESSION['old_edit']);
+        } else {
+            $updStmt->close();
+            if (file_exists(__DIR__ . '/../' . $newImageDb)) {
+                unlink(__DIR__ . '/../' . $newImageDb);
+            }
+            $_SESSION['error'] = 'Something went wrong. Please try again.';
+            $_SESSION['old_edit'] = [
+                'id'         => $editRoomId,
+                'owner_id'   => $editOwnerId,
+                'title'      => $editTitle,
+                'description'=> $editDesc,
+                'location'   => $editLocation,
+                'price'      => $editPrice,
+                'room_type'  => $editRoomType,
+                'facilities' => $editFacilities,
+                'status'     => $editStatus,
+            ];
+        }
+    } else {
+        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, room_type = ?, facilities = ?, status = ? WHERE id = ?");
+        $updStmt->bind_param("isssdsssi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editRoomType, $facilitiesDb, $editStatus, $editRoomId);
+
+        if ($updStmt->execute()) {
+            $updStmt->close();
+            $_SESSION['success'] = 'Room updated successfully.';
+            unset($_SESSION['old_edit']);
+        } else {
+            $updStmt->close();
+            $_SESSION['error'] = 'Something went wrong. Please try again.';
+            $_SESSION['old_edit'] = [
+                'id'         => $editRoomId,
+                'owner_id'   => $editOwnerId,
+                'title'      => $editTitle,
+                'description'=> $editDesc,
+                'location'   => $editLocation,
+                'price'      => $editPrice,
+                'room_type'  => $editRoomType,
+                'facilities' => $editFacilities,
+                'status'     => $editStatus,
+            ];
+        }
+    }
+
+    header("Location: " . base_url('admin/rooms'));
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -147,9 +473,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <main class="admin-main">
 
-            <div class="admin-page-header">
-                <h1 class="admin-page-title">Manage Rooms</h1>
-                <p class="admin-page-subtitle">View and manage all rooms listed on the platform.</p>
+            <div class="admin-page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h1 class="admin-page-title">Manage Rooms</h1>
+                    <p class="admin-page-subtitle">View and manage all rooms listed on the platform.</p>
+                </div>
+                <button type="button" class="admin-btn-primary" onclick="openCreateModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Room
+                </button>
             </div>
 
             <?php if (!empty($_SESSION['success'])): ?>
@@ -288,6 +623,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
+                                                <button type="button" class="admin-btn" onclick='openEditModal(<?= json_encode($room, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit Room">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                </button>
                                                 <button type="button" class="admin-btn admin-btn-danger" onclick="confirmDeleteRoom(<?= (int) $room['id'] ?>, '<?= htmlspecialchars(addslashes($room['title']), ENT_QUOTES) ?>')" title="Delete Room">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <polyline points="3 6 5 6 21 6" />
@@ -369,6 +710,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
     </div>
 
+    <!-- Create Room Modal -->
+    <?php
+    $oldAdd = $_SESSION['old_add'] ?? null;
+    unset($_SESSION['old_add']);
+    ?>
+    <div class="admin-modal-overlay" id="create-modal">
+        <div class="admin-modal" style="max-width: 600px;">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">Add New Room</h3>
+                <button class="admin-modal-close" onclick="closeCreateModal()" aria-label="Close">&times;</button>
+            </div>
+            <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_room">
+                <div class="admin-modal-body">
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Owner <span class="required">*</span></label>
+                        <select name="owner_id" class="admin-form-select" required>
+                            <option value="">Select an owner</option>
+                            <?php foreach ($owners as $owner): ?>
+                                <option value="<?= (int) $owner['id'] ?>" <?= ((int) ($oldAdd['owner_id'] ?? 0) === (int) $owner['id']) ? 'selected' : '' ?>><?= htmlspecialchars($owner['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Title <span class="required">*</span></label>
+                        <input type="text" name="title" class="admin-form-input" placeholder="e.g. Single Room in Balaju" maxlength="150" required value="<?= htmlspecialchars($oldAdd['title'] ?? '') ?>">
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Description <span class="required">*</span></label>
+                        <textarea name="description" class="admin-form-textarea" rows="3" placeholder="Describe the room, amenities, surroundings..." required><?= htmlspecialchars($oldAdd['description'] ?? '') ?></textarea>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Location <span class="required">*</span></label>
+                        <input type="text" name="location" class="admin-form-input" placeholder="e.g. Balaju, Kathmandu" required value="<?= htmlspecialchars($oldAdd['location'] ?? '') ?>">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Price (Rs. / month) <span class="required">*</span></label>
+                            <input type="number" name="price" class="admin-form-input" placeholder="e.g. 8000" min="0" step="0.01" required value="<?= htmlspecialchars($oldAdd['price'] ?? '') ?>">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
+                            <input type="text" name="room_type" class="admin-form-input" placeholder="e.g. Single, Double" maxlength="50" required value="<?= htmlspecialchars($oldAdd['room_type'] ?? '') ?>">
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Facilities <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <textarea name="facilities" class="admin-form-textarea" rows="2" placeholder="e.g. WiFi, Attached Bathroom, Parking"><?= htmlspecialchars($oldAdd['facilities'] ?? '') ?></textarea>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Room Image <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <div class="admin-form-file">
+                            <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
+                            <div class="admin-form-hint">JPG, PNG, or WEBP. Max 2 MB.</div>
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Status <span class="required">*</span></label>
+                        <select name="status" class="admin-form-select" required>
+                            <option value="available" <?= ($oldAdd['status'] ?? 'available') === 'available' ? 'selected' : '' ?>>Available</option>
+                            <option value="booked" <?= ($oldAdd['status'] ?? '') === 'booked' ? 'selected' : '' ?>>Booked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="admin-btn-primary">Create Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Room Modal -->
+    <?php
+    $oldEdit = $_SESSION['old_edit'] ?? null;
+    unset($_SESSION['old_edit']);
+    ?>
+    <div class="admin-modal-overlay" id="edit-modal">
+        <div class="admin-modal" style="max-width: 600px;">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">Edit Room</h3>
+                <button class="admin-modal-close" onclick="closeEditModal()" aria-label="Close">&times;</button>
+            </div>
+            <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" enctype="multipart/form-data" id="edit-room-form">
+                <input type="hidden" name="action" value="update_room">
+                <input type="hidden" name="room_id" id="edit-room-id">
+                <div class="admin-modal-body">
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Owner <span class="required">*</span></label>
+                        <select name="owner_id" id="edit-owner-id" class="admin-form-select" required>
+                            <option value="">Select an owner</option>
+                            <?php foreach ($owners as $owner): ?>
+                                <option value="<?= (int) $owner['id'] ?>"><?= htmlspecialchars($owner['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Title <span class="required">*</span></label>
+                        <input type="text" name="title" id="edit-title" class="admin-form-input" placeholder="e.g. Single Room in Balaju" maxlength="150" required>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Description <span class="required">*</span></label>
+                        <textarea name="description" id="edit-description" class="admin-form-textarea" rows="3" placeholder="Describe the room, amenities, surroundings..." required></textarea>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Location <span class="required">*</span></label>
+                        <input type="text" name="location" id="edit-location" class="admin-form-input" placeholder="e.g. Balaju, Kathmandu" required>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Price (Rs. / month) <span class="required">*</span></label>
+                            <input type="number" name="price" id="edit-price" class="admin-form-input" placeholder="e.g. 8000" min="0" step="0.01" required>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
+                            <input type="text" name="room_type" id="edit-room-type" class="admin-form-input" placeholder="e.g. Single, Double" maxlength="50" required>
+                        </div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Facilities <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <textarea name="facilities" id="edit-facilities" class="admin-form-textarea" rows="2" placeholder="e.g. WiFi, Attached Bathroom, Parking"></textarea>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Room Image <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <div class="admin-form-file">
+                            <input type="file" name="image" id="edit-image" accept="image/jpeg,image/png,image/webp">
+                            <div class="admin-form-hint">JPG, PNG, or WEBP. Max 2 MB. Leave empty to keep current image.</div>
+                        </div>
+                        <div class="admin-form-file-preview" id="edit-image-preview" style="display:none;"></div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Status <span class="required">*</span></label>
+                        <select name="status" id="edit-status" class="admin-form-select" required>
+                            <option value="available">Available</option>
+                            <option value="booked">Booked</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="admin-btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Form -->
     <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" id="delete-room-form" style="display:none;">
         <input type="hidden" name="action" value="delete_room">
@@ -386,6 +873,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         form.submit();
     });
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    // ─── View Room Modal ──────────────────────────────────
     function openRoomModal(room) {
         var statusClass = room.status === 'available' ? 'admin-badge-available' : 'admin-badge-booked';
         var imageUrl = room.image ? '<?= base_url('') ?>' + escapeHtml(room.image) : '';
@@ -399,6 +893,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Location</span><span class="admin-modal-value">' + escapeHtml(room.location) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Room Type</span><span class="admin-modal-value">' + escapeHtml(room.room_type.charAt(0).toUpperCase() + room.room_type.slice(1)) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Price</span><span class="admin-modal-value">Rs. ' + escapeHtml(room.price) + ' / month</span></div>';
+        if (room.description) {
+            html += '<div class="admin-modal-field"><span class="admin-modal-label">Description</span><span class="admin-modal-value">' + escapeHtml(room.description) + '</span></div>';
+        }
+        if (room.facilities) {
+            html += '<div class="admin-modal-field"><span class="admin-modal-label">Facilities</span><span class="admin-modal-value">' + escapeHtml(room.facilities) + '</span></div>';
+        }
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Status</span><span class="admin-modal-value"><span class="admin-badge ' + statusClass + '">' + escapeHtml(room.status.charAt(0).toUpperCase() + room.status.slice(1)) + '</span></span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Created</span><span class="admin-modal-value">' + escapeHtml(room.created_at) + '</span></div>';
 
@@ -410,6 +910,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('room-modal').classList.remove('open');
     }
 
+    // ─── Create Room Modal ────────────────────────────────
+    function openCreateModal() {
+        document.getElementById('create-modal').classList.add('open');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').classList.remove('open');
+    }
+
+    // ─── Edit Room Modal ──────────────────────────────────
+    function openEditModal(room) {
+        document.getElementById('edit-room-id').value = room.id;
+        document.getElementById('edit-owner-id').value = room.owner_id;
+        document.getElementById('edit-title').value = room.title;
+        document.getElementById('edit-description').value = room.description || '';
+        document.getElementById('edit-location').value = room.location;
+        document.getElementById('edit-price').value = room.price;
+        document.getElementById('edit-room-type').value = room.room_type;
+        document.getElementById('edit-facilities').value = room.facilities || '';
+        document.getElementById('edit-status').value = room.status;
+
+        var preview = document.getElementById('edit-image-preview');
+        if (room.image) {
+            preview.innerHTML = '<img src="<?= base_url('') ?>' + escapeHtml(room.image) + '" alt="Current image">';
+            preview.style.display = 'block';
+        } else {
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+        }
+
+        document.getElementById('edit-image').value = '';
+        document.getElementById('edit-modal').classList.add('open');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    // ─── Delete Confirmation ──────────────────────────────
     function confirmDeleteRoom(roomId, roomTitle) {
         if (confirm('Are you sure you want to delete room "' + roomTitle + '"?\n\nThis will also remove all related bookings, bookmarks, and messages. This action cannot be undone.')) {
             document.getElementById('delete-room-id').value = roomId;
@@ -417,19 +956,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 
-    function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
-    }
-
-    document.getElementById('room-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeRoomModal();
+    // ─── Close modals on overlay click / Escape ───────────
+    ['room-modal', 'create-modal', 'edit-modal'].forEach(function(id) {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('open');
+            }
+        });
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeRoomModal();
+        if (e.key === 'Escape') {
+            document.getElementById('room-modal').classList.remove('open');
+            document.getElementById('create-modal').classList.remove('open');
+            document.getElementById('edit-modal').classList.remove('open');
+        }
     });
+
+    <?php if ($oldEdit !== null): ?>
+    (function() {
+        var editData = <?= json_encode($oldEdit) ?>;
+        document.getElementById('edit-room-id').value = editData.id;
+        document.getElementById('edit-owner-id').value = editData.owner_id;
+        document.getElementById('edit-title').value = editData.title;
+        document.getElementById('edit-description').value = editData.description;
+        document.getElementById('edit-location').value = editData.location;
+        document.getElementById('edit-price').value = editData.price;
+        document.getElementById('edit-room-type').value = editData.room_type;
+        document.getElementById('edit-facilities').value = editData.facilities;
+        document.getElementById('edit-status').value = editData.status;
+        document.getElementById('edit-modal').classList.add('open');
+    })();
+    <?php endif; ?>
     </script>
 
 </body>

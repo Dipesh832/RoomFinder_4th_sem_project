@@ -80,6 +80,151 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     header("Location: " . base_url('admin/users'));
     exit;
 }
+
+// ─── CREATE USER ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_user') {
+    $createName     = trim($_POST['name'] ?? '');
+    $createEmail    = trim($_POST['email'] ?? '');
+    $createPhone    = trim($_POST['phone'] ?? '');
+    $createPassword = $_POST['password'] ?? '';
+    $createRole     = $_POST['role'] ?? '';
+
+    $createErrors = [];
+
+    if ($createName === '') {
+        $createErrors[] = 'Name is required.';
+    } elseif (strlen($createName) > 100) {
+        $createErrors[] = 'Name must be 100 characters or fewer.';
+    }
+
+    if ($createEmail === '') {
+        $createErrors[] = 'Email is required.';
+    } elseif (!filter_var($createEmail, FILTER_VALIDATE_EMAIL)) {
+        $createErrors[] = 'Email is not valid.';
+    } else {
+        $emailCheck = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $emailCheck->bind_param("s", $createEmail);
+        $emailCheck->execute();
+        if ($emailCheck->get_result()->num_rows > 0) {
+            $createErrors[] = 'A user with this email already exists.';
+        }
+        $emailCheck->close();
+    }
+
+    if ($createPhone === '') {
+        $createErrors[] = 'Phone is required.';
+    }
+
+    if ($createPassword === '') {
+        $createErrors[] = 'Password is required.';
+    } elseif (strlen($createPassword) < 6) {
+        $createErrors[] = 'Password must be at least 6 characters.';
+    }
+
+    if (!in_array($createRole, $allowedRoles, true)) {
+        $createErrors[] = 'Invalid role selected.';
+    }
+
+    if (!empty($createErrors)) {
+        $_SESSION['error'] = implode(' ', $createErrors);
+        $_SESSION['old_create'] = [
+            'name'  => $createName,
+            'email' => $createEmail,
+            'phone' => $createPhone,
+            'role'  => $createRole,
+        ];
+        header("Location: " . base_url('admin/users'));
+        exit;
+    }
+
+    $hashedPassword = password_hash($createPassword, PASSWORD_DEFAULT);
+    $insStmt = $conn->prepare("INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)");
+    $insStmt->bind_param("sssss", $createName, $createEmail, $createPhone, $hashedPassword, $createRole);
+    $insStmt->execute();
+    $insStmt->close();
+
+    $_SESSION['success'] = 'User "' . $createName . '" created successfully.';
+    unset($_SESSION['old_create']);
+    header("Location: " . base_url('admin/users'));
+    exit;
+}
+
+// ─── UPDATE USER ──────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_user') {
+    $editUserId   = (int) ($_POST['user_id'] ?? 0);
+    $editName     = trim($_POST['name'] ?? '');
+    $editEmail    = trim($_POST['email'] ?? '');
+    $editPhone    = trim($_POST['phone'] ?? '');
+    $editPassword = $_POST['password'] ?? '';
+    $editRole     = $_POST['role'] ?? '';
+
+    $editErrors = [];
+
+    if ($editUserId <= 0) {
+        $editErrors[] = 'Invalid user ID.';
+    }
+
+    if ($editName === '') {
+        $editErrors[] = 'Name is required.';
+    } elseif (strlen($editName) > 100) {
+        $editErrors[] = 'Name must be 100 characters or fewer.';
+    }
+
+    if ($editEmail === '') {
+        $editErrors[] = 'Email is required.';
+    } elseif (!filter_var($editEmail, FILTER_VALIDATE_EMAIL)) {
+        $editErrors[] = 'Email is not valid.';
+    } else {
+        $emailCheck = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+        $emailCheck->bind_param("si", $editEmail, $editUserId);
+        $emailCheck->execute();
+        if ($emailCheck->get_result()->num_rows > 0) {
+            $editErrors[] = 'A user with this email already exists.';
+        }
+        $emailCheck->close();
+    }
+
+    if ($editPhone === '') {
+        $editErrors[] = 'Phone is required.';
+    }
+
+    if ($editPassword !== '' && strlen($editPassword) < 6) {
+        $editErrors[] = 'New password must be at least 6 characters.';
+    }
+
+    if (!in_array($editRole, $allowedRoles, true)) {
+        $editErrors[] = 'Invalid role selected.';
+    }
+
+    if (!empty($editErrors)) {
+        $_SESSION['error'] = implode(' ', $editErrors);
+        $_SESSION['old_edit'] = [
+            'id'    => $editUserId,
+            'name'  => $editName,
+            'email' => $editEmail,
+            'phone' => $editPhone,
+            'role'  => $editRole,
+        ];
+        header("Location: " . base_url('admin/users'));
+        exit;
+    }
+
+    if ($editPassword !== '') {
+        $hashedPassword = password_hash($editPassword, PASSWORD_DEFAULT);
+        $updStmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, password = ?, role = ? WHERE id = ?");
+        $updStmt->bind_param("sssssi", $editName, $editEmail, $editPhone, $hashedPassword, $editRole, $editUserId);
+    } else {
+        $updStmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ?, role = ? WHERE id = ?");
+        $updStmt->bind_param("ssssi", $editName, $editEmail, $editPhone, $editRole, $editUserId);
+    }
+    $updStmt->execute();
+    $updStmt->close();
+
+    $_SESSION['success'] = 'User updated successfully.';
+    unset($_SESSION['old_edit']);
+    header("Location: " . base_url('admin/users'));
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,9 +245,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <main class="admin-main">
 
-            <div class="admin-page-header">
-                <h1 class="admin-page-title">Manage Users</h1>
-                <p class="admin-page-subtitle">View and manage all registered users on the platform.</p>
+            <div class="admin-page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h1 class="admin-page-title">Manage Users</h1>
+                    <p class="admin-page-subtitle">View and manage all registered users on the platform.</p>
+                </div>
+                <button type="button" class="admin-btn-primary" onclick="openCreateModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add User
+                </button>
             </div>
 
             <?php if (!empty($_SESSION['success'])): ?>
@@ -209,6 +363,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
+                                                <button type="button" class="admin-btn" onclick='openEditModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit User">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                </button>
                                                 <?php if ((int) $u['id'] !== $currentUserId): ?>
                                                     <button type="button" class="admin-btn admin-btn-danger" onclick="confirmDeleteUser(<?= (int) $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name']), ENT_QUOTES) ?>')" title="Delete User">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -291,6 +451,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
     </div>
 
+    <!-- Create User Modal -->
+    <?php
+    $oldCreate = $_SESSION['old_create'] ?? null;
+    unset($_SESSION['old_create']);
+    ?>
+    <div class="admin-modal-overlay" id="create-modal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">Add New User</h3>
+                <button class="admin-modal-close" onclick="closeCreateModal()" aria-label="Close">&times;</button>
+            </div>
+            <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>">
+                <input type="hidden" name="action" value="create_user">
+                <div class="admin-modal-body">
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Name <span class="required">*</span></label>
+                        <input type="text" name="name" class="admin-form-input" placeholder="Enter full name" maxlength="100" required value="<?= htmlspecialchars($oldCreate['name'] ?? '') ?>">
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Email <span class="required">*</span></label>
+                        <input type="email" name="email" class="admin-form-input" placeholder="user@example.com" required value="<?= htmlspecialchars($oldCreate['email'] ?? '') ?>">
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Phone <span class="required">*</span></label>
+                        <input type="text" name="phone" class="admin-form-input" placeholder="Enter phone number" required value="<?= htmlspecialchars($oldCreate['phone'] ?? '') ?>">
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Password <span class="required">*</span></label>
+                        <input type="password" name="password" class="admin-form-input" placeholder="Minimum 6 characters" minlength="6" required>
+                        <div class="admin-form-hint">Password will be securely hashed before storage.</div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Role <span class="required">*</span></label>
+                        <select name="role" class="admin-form-select" required>
+                            <option value="tenant" <?= ($oldCreate['role'] ?? '') === 'tenant' ? 'selected' : '' ?>>Tenant</option>
+                            <option value="owner" <?= ($oldCreate['role'] ?? '') === 'owner' ? 'selected' : '' ?>>Owner</option>
+                            <option value="admin" <?= ($oldCreate['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="admin-btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <?php
+    $oldEdit = $_SESSION['old_edit'] ?? null;
+    unset($_SESSION['old_edit']);
+    ?>
+    <div class="admin-modal-overlay" id="edit-modal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">Edit User</h3>
+                <button class="admin-modal-close" onclick="closeEditModal()" aria-label="Close">&times;</button>
+            </div>
+            <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>" id="edit-user-form">
+                <input type="hidden" name="action" value="update_user">
+                <input type="hidden" name="user_id" id="edit-user-id">
+                <div class="admin-modal-body">
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Name <span class="required">*</span></label>
+                        <input type="text" name="name" id="edit-name" class="admin-form-input" placeholder="Enter full name" maxlength="100" required>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Email <span class="required">*</span></label>
+                        <input type="email" name="email" id="edit-email" class="admin-form-input" placeholder="user@example.com" required>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Phone <span class="required">*</span></label>
+                        <input type="text" name="phone" id="edit-phone" class="admin-form-input" placeholder="Enter phone number" required>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">New Password</label>
+                        <input type="password" name="password" id="edit-password" class="admin-form-input" placeholder="Leave blank to keep current password" minlength="6">
+                        <div class="admin-form-hint">Leave empty to keep the existing password.</div>
+                    </div>
+                    <div class="admin-form-group">
+                        <label class="admin-form-label">Role <span class="required">*</span></label>
+                        <select name="role" id="edit-role" class="admin-form-select" required>
+                            <option value="tenant">Tenant</option>
+                            <option value="owner">Owner</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-modal-footer">
+                    <button type="button" class="admin-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="admin-btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Form -->
     <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>" id="delete-user-form" style="display:none;">
         <input type="hidden" name="action" value="delete_user">
@@ -308,12 +565,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         form.submit();
     });
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    // ─── View User Modal ──────────────────────────────────
     function openUserModal(user) {
         var roleClass = 'admin-badge-role';
         if (user.role === 'owner') roleClass = 'admin-badge-owner';
         else if (user.role === 'tenant') roleClass = 'admin-badge-tenant';
 
-        var html = '<div class="admin-modal-field"><span class="admin-modal-label">Name</span><span class="admin-modal-value">' + escapeHtml(user.name) + '</span></div>';
+        var html = '<div class="admin-modal-field"><span class="admin-modal-label">ID</span><span class="admin-modal-value">' + user.id + '</span></div>';
+        html += '<div class="admin-modal-field"><span class="admin-modal-label">Name</span><span class="admin-modal-value">' + escapeHtml(user.name) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Email</span><span class="admin-modal-value">' + escapeHtml(user.email) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Phone</span><span class="admin-modal-value">' + escapeHtml(user.phone) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Role</span><span class="admin-modal-value"><span class="admin-badge ' + roleClass + '">' + escapeHtml(user.role.charAt(0).toUpperCase() + user.role.slice(1)) + '</span></span></div>';
@@ -327,6 +592,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('user-modal').classList.remove('open');
     }
 
+    // ─── Create User Modal ────────────────────────────────
+    function openCreateModal() {
+        document.getElementById('create-modal').classList.add('open');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').classList.remove('open');
+    }
+
+    // ─── Edit User Modal ──────────────────────────────────
+    function openEditModal(user) {
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-name').value = user.name;
+        document.getElementById('edit-email').value = user.email;
+        document.getElementById('edit-phone').value = user.phone;
+        document.getElementById('edit-role').value = user.role;
+        document.getElementById('edit-password').value = '';
+        document.getElementById('edit-modal').classList.add('open');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    // ─── Delete Confirmation ──────────────────────────────
     function confirmDeleteUser(userId, userName) {
         if (confirm('Are you sure you want to delete user "' + userName + '"?\n\nThis will also remove all their rooms, bookings, bookmarks, and messages. This action cannot be undone.')) {
             document.getElementById('delete-user-id').value = userId;
@@ -334,19 +624,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 
-    function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
-    }
-
-    document.getElementById('user-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeUserModal();
+    // ─── Close modals on overlay click / Escape ───────────
+    ['user-modal', 'create-modal', 'edit-modal'].forEach(function(id) {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('open');
+            }
+        });
     });
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeUserModal();
+        if (e.key === 'Escape') {
+            document.getElementById('user-modal').classList.remove('open');
+            document.getElementById('create-modal').classList.remove('open');
+            document.getElementById('edit-modal').classList.remove('open');
+        }
     });
+
+    <?php if ($oldEdit !== null): ?>
+    (function() {
+        var editData = <?= json_encode($oldEdit) ?>;
+        document.getElementById('edit-user-id').value = editData.id;
+        document.getElementById('edit-name').value = editData.name;
+        document.getElementById('edit-email').value = editData.email;
+        document.getElementById('edit-phone').value = editData.phone;
+        document.getElementById('edit-role').value = editData.role;
+        document.getElementById('edit-modal').classList.add('open');
+    })();
+    <?php endif; ?>
     </script>
 
 </body>

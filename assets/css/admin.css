@@ -492,6 +492,41 @@
   color: #dc2626;
 }
 
+.admin-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 9px 18px;
+
+  border: 1px solid #10b981;
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--general-font);
+  text-decoration: none;
+
+  cursor: pointer;
+  white-space: nowrap;
+
+  background: #10b981;
+  color: #ffffff;
+
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-btn-primary:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.admin-btn-primary svg {
+  width: 16px;
+  height: 16px;
+}
+
 .admin-btn svg {
   width: 16px;
   height: 16px;
@@ -847,6 +882,127 @@
 }
 
 /* ========================================
+   ADMIN FORMS (Create / Edit)
+======================================== */
+
+.admin-form-group {
+  margin-bottom: 18px;
+}
+
+.admin-form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin-form-label .required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.admin-form-input,
+.admin-form-select,
+.admin-form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-family: var(--general-font);
+  color: #334155;
+  background: #ffffff;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.admin-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-form-input:focus,
+.admin-form-select:focus,
+.admin-form-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.admin-form-input::placeholder,
+.admin-form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.admin-form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+.admin-form-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.admin-form-file {
+  width: 100%;
+}
+
+.admin-form-file input[type="file"] {
+  width: 100%;
+  padding: 8px 0;
+  font-size: 14px;
+  font-family: var(--general-font);
+  color: #334155;
+  cursor: pointer;
+}
+
+.admin-form-file input[type="file"]::file-selector-button {
+  padding: 8px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--general-font);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  margin-right: 12px;
+}
+
+.admin-form-file input[type="file"]::file-selector-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.admin-form-file-preview {
+  margin-top: 8px;
+}
+
+.admin-form-file-preview img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-form-error {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+/* ========================================
    ADMIN MODAL / VIEW DETAIL
 ========================================= */
 
@@ -911,6 +1067,15 @@
 
 .admin-modal-body {
   padding: 24px;
+}
+
+.admin-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .admin-modal-field {
@@ -1055,6 +1220,28 @@
     width: 100%;
   }
 
+  .admin-form-input,
+  .admin-form-select,
+  .admin-form-textarea {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .admin-modal {
+    max-width: 100%;
+    margin: 10px;
+    max-height: 85vh;
+  }
+
+  .admin-modal-footer {
+    flex-direction: column;
+  }
+
+  .admin-modal-footer .admin-btn,
+  .admin-modal-footer .admin-btn-primary {
+    width: 100%;
+  }
+
   .admin-page-title {
     font-size: 22px;
   }
@@ -1126,6 +1313,21 @@
   .admin-btn {
     padding: 6px 10px;
     font-size: 12px;
+  }
+
+  .admin-btn-primary {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+
+  .admin-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-modal {
+    max-width: 100%;
+    margin: 8px;
   }
 
   .monitor-section-title {
