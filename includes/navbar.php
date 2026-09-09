@@ -23,7 +23,13 @@ $basePath = ($isOwner || $isTenant) ? '../' : '';
 $loginUrl    = base_url('auth/login');
 $registerUrl = base_url('auth/account-type');
 $logoutUrl   = base_url('auth/logout');
-$profileUrl  = base_url($role === 'owner' ? 'owner/dashboard' : 'tenant/dashboard');
+if ($role === 'admin') {
+    $profileUrl = base_url('admin/dashboard');
+} elseif ($role === 'owner') {
+    $profileUrl = base_url('owner/dashboard');
+} else {
+    $profileUrl = base_url('tenant/dashboard');
+}
 
 // Build nav items based on context
 $navItems = [];

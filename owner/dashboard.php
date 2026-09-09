@@ -117,6 +117,76 @@ $result = $stmt->get_result();
 $rooms = $result->fetch_all(MYSQLI_ASSOC);
 
 $stmt->close();
+
+
+/*
+ * Fetch unread messages count for the activity card.
+ */
+
+$unreadMessages = 0;
+
+$stmt = $conn->prepare("
+    SELECT COUNT(*) AS unread_count
+    FROM messages
+    WHERE owner_id = ?
+      AND is_read = 0
+");
+
+$stmt->bind_param("i", $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$unreadMessages = (int) ($result->fetch_assoc()['unread_count'] ?? 0);
+
+$stmt->close();
+
+
+/*
+ * Fetch recent conversations for the dashboard.
+ *
+ * Group by tenant+room, get the latest message per conversation,
+ * and count unread messages per conversation.
+ */
+
+$recentMessages = [];
+
+
+$stmt = $conn->prepare("
+    SELECT
+        m.id,
+        m.message,
+        m.is_read,
+        m.created_at,
+        t.id AS tenant_id,
+        t.name AS tenant_name,
+        r.id AS room_id,
+        r.room_type,
+        sub.unread_count
+    FROM messages m
+    INNER JOIN users t
+        ON m.tenant_id = t.id
+    INNER JOIN rooms r
+        ON m.room_id = r.id
+    INNER JOIN (
+        SELECT
+            MAX(id) AS max_id,
+            SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread_count
+        FROM messages
+        WHERE owner_id = ?
+        GROUP BY tenant_id, room_id
+    ) sub ON m.id = sub.max_id
+    WHERE m.owner_id = ?
+    ORDER BY m.created_at DESC
+    LIMIT 6
+");
+
+$stmt->bind_param("ii", $ownerId, $ownerId);
+$stmt->execute();
+
+$result = $stmt->get_result();
+$recentMessages = $result->fetch_all(MYSQLI_ASSOC);
+
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -359,7 +429,7 @@ $stmt->close();
                         <div class="activity-content">
 
                             <span class="activity-number">
-                                0
+                                <?= $unreadMessages ?>
                             </span>
 
                             <span class="activity-label">
@@ -626,6 +696,128 @@ $stmt->close();
                         </svg>
                     </a>
                 </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================================
+             RECENT MESSAGES SECTION
+        ========================================= -->
+
+        <section class="recent-messages-section">
+
+            <div class="recent-messages-container">
+
+                <div class="recent-messages-header">
+                    <h2 class="recent-messages-title">Recent Messages</h2>
+                    <p class="recent-messages-subtitle">Recent conversations with tenants</p>
+                </div>
+
+                <?php if (empty($recentMessages)): ?>
+
+                    <div class="recent-messages-empty">
+                        <p>No messages yet. When tenants contact you, conversations will appear here.</p>
+                    </div>
+
+                <?php else: ?>
+
+                    <div class="recent-messages-grid">
+
+                        <?php foreach ($recentMessages as $msg): ?>
+
+                            <?php
+                            $msgTenantInitial = strtoupper(mb_substr($msg['tenant_name'], 0, 1));
+                            $msgTimeAgo = '';
+                            $diff = time() - strtotime($msg['created_at']);
+                            if ($diff < 60) {
+                                $msgTimeAgo = 'Just now';
+                            } elseif ($diff < 3600) {
+                                $msgTimeAgo = floor($diff / 60) . ' min ago';
+                            } elseif ($diff < 86400) {
+                                $msgTimeAgo = floor($diff / 3600) . ' hr ago';
+                            } elseif ($diff < 604800) {
+                                $msgTimeAgo = floor($diff / 86400) . ' day' . (floor($diff / 86400) > 1 ? 's' : '') . ' ago';
+                            } else {
+                                $msgTimeAgo = date('M j', strtotime($msg['created_at']));
+                            }
+                            ?>
+
+                            <article class="recent-message-card">
+
+                                <!-- Header -->
+
+                                <div class="rm-card-header">
+
+                                    <div class="rm-card-tenant">
+                                        <div class="rm-card-avatar">
+                                            <?= htmlspecialchars($msgTenantInitial) ?>
+                                        </div>
+                                        <div class="rm-card-tenant-info">
+                                            <span class="rm-card-name">
+                                                <?= htmlspecialchars($msg['tenant_name']) ?>
+                                            </span>
+                                            <span class="rm-card-room-type">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M3 10.5L12 3L21 10.5"/>
+                                                    <path d="M5 9.5V20H19V9.5"/>
+                                                    <path d="M9 20V14H15V20"/>
+                                                </svg>
+                                                <?= htmlspecialchars($msg['room_type']) ?>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="rm-card-meta">
+                                        <span class="rm-card-time"><?= htmlspecialchars($msgTimeAgo) ?></span>
+                                        <?php if ((int) $msg['unread_count'] > 0): ?>
+                                            <span class="rm-card-unread"><?= (int) $msg['unread_count'] ?></span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                </div>
+
+                                <!-- Message Preview -->
+
+                                <div class="rm-card-message">
+                                    <?= htmlspecialchars($msg['message']) ?>
+                                </div>
+
+                                <!-- Action -->
+
+                                <div class="rm-card-action">
+                                    <span class="rm-card-action-text">Open Conversation</span>
+                                    <span class="rm-card-action-arrow">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                            <polyline points="12 5 19 12 12 19"/>
+                                        </svg>
+                                    </span>
+                                </div>
+
+                            </article>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+                <?php if (count($recentMessages) > 0): ?>
+
+                    <div class="recent-messages-footer">
+                        <a href="messages.php" class="dashboard-view-all-link">
+                            View All Messages
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </a>
+                    </div>
+
+                <?php endif; ?>
 
             </div>
 

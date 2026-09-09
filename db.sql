@@ -71,3 +71,26 @@ CREATE TABLE bookings (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+
+CREATE TABLE messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT NOT NULL,
+    tenant_id INT NOT NULL,
+    room_id INT NOT NULL,
+    message TEXT NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (owner_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    FOREIGN KEY (tenant_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    FOREIGN KEY (room_id) REFERENCES rooms(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);

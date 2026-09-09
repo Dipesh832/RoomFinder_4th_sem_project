@@ -83,9 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['image'] = "File upload failed. Please try again.";
         } else {
 
-            $maxSize = 5 * 1024 * 1024;
+            $maxSize = 2 * 1024 * 1024;
             if ($fileSize > $maxSize) {
-                $errors['image'] = "Image must be 5 MB or less.";
+                $errors['image'] = "Image must be 2 MB or less.";
             }
 
             if ($errors['image'] === '') {
@@ -357,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             accept="image/jpeg,image/png,image/webp"
                         >
 
-                        <span class="field-hint">JPG, PNG, or WEBP. Max 5 MB.</span>
+                        <span class="field-hint">JPG, PNG, or WEBP. Max 2 MB.</span>
 
                         <?php if ($errors['image'] !== ''): ?>
                             <span class="error"><?= htmlspecialchars($errors['image']) ?></span>
