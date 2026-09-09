@@ -5,6 +5,30 @@ require_once __DIR__ . '/../middleware/require_owner.php';
 
 $ownerId = $_SESSION['user']['id'] ?? 0;
 
+$roomId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+if ($roomId <= 0) {
+    redirect('owner/rooms');
+}
+
+/*
+ * Fetch room and verify ownership.
+ */
+$stmt = $conn->prepare("
+    SELECT id, title, description, location, price, room_type, facilities, image, status
+    FROM rooms
+    WHERE id = ? AND owner_id = ?
+");
+$stmt->bind_param("ii", $roomId, $ownerId);
+$stmt->execute();
+$room = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$room) {
+    $_SESSION['error'] = "Room not found or you do not have permission to edit it.";
+    redirect('owner/rooms');
+}
+
 $uploadDir = __DIR__ . '/../assets/uploads/rooms/';
 
 if (!is_dir($uploadDir)) {
@@ -22,12 +46,12 @@ $errors = [
 ];
 
 $old = [
-    'title'       => '',
-    'description' => '',
-    'location'    => '',
-    'price'       => '',
-    'room_type'   => '',
-    'facilities'  => '',
+    'title'       => $room['title'],
+    'description' => $room['description'],
+    'location'    => $room['location'],
+    'price'       => $room['price'],
+    'room_type'   => $room['room_type'],
+    'facilities'  => $room['facilities'] ?? '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -70,7 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['room_type'] = "Room type is required";
     }
 
-    $uploadedFilePath = null;
+    $newImagePath = null;
+    $deleteOldImage = false;
 
     if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
 
@@ -117,7 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $destPath   = $uploadDir . $uniqueName;
 
                 if (move_uploaded_file($tmpName, $destPath)) {
-                    $uploadedFilePath = 'assets/uploads/rooms/' . $uniqueName;
+                    $newImagePath   = 'assets/uploads/rooms/' . $uniqueName;
+                    $deleteOldImage = true;
                 } else {
                     $errors['image'] = "Failed to save the uploaded image.";
                 }
@@ -127,46 +153,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!array_filter($errors)) {
 
-        $sql = "INSERT INTO rooms
-                (owner_id, title, description, location, price, room_type, facilities, image, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $finalImage = $room['image'];
+        if ($newImagePath !== null) {
+            $finalImage = $newImagePath;
+        }
+
+        $sql = "UPDATE rooms
+                SET title = ?, description = ?, location = ?, price = ?,
+                    room_type = ?, facilities = ?, image = ?
+                WHERE id = ? AND owner_id = ?";
 
         $stmt = mysqli_prepare($conn, $sql);
 
         $facilitiesDb = $facilities !== ''
             ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $facilities)))))
             : null;
-        $imageDb       = $uploadedFilePath;
-        $status        = 'available';
 
         mysqli_stmt_bind_param(
             $stmt,
-            "isssdssss",
-            $ownerId,
+            "sssdsssii",
             $title,
             $description,
             $location,
             $price,
             $roomType,
             $facilitiesDb,
-            $imageDb,
-            $status
+            $finalImage,
+            $roomId,
+            $ownerId
         );
 
         if (mysqli_stmt_execute($stmt)) {
             $stmt->close();
-            $_SESSION['success'] = "Room added successfully.";
-            redirect("owner/rooms");
+
+            if ($deleteOldImage && $room['image'] && $room['image'] !== $finalImage) {
+                $oldImagePath = __DIR__ . '/../' . $room['image'];
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+
+            $_SESSION['success'] = "Room updated successfully.";
+            redirect('owner/rooms');
         } else {
             $stmt->close();
-            if ($uploadedFilePath !== null && file_exists(__DIR__ . '/../' . $uploadedFilePath)) {
-                unlink(__DIR__ . '/../' . $uploadedFilePath);
+            if ($newImagePath !== null && file_exists($destPath)) {
+                unlink($destPath);
             }
             $errors['title'] = "Something went wrong. Please try again.";
         }
     } else {
-        if ($uploadedFilePath !== null && file_exists(__DIR__ . '/../' . $uploadedFilePath)) {
-            unlink(__DIR__ . '/../' . $uploadedFilePath);
+        if ($newImagePath !== null && file_exists($destPath)) {
+            unlink($destPath);
         }
     }
 }
@@ -179,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Add Room | RoomFinder</title>
+    <title>Edit Room | RoomFinder</title>
 
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/navbar.css">
@@ -199,10 +237,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="add-room-header">
 
-                    <h1 class="add-room-heading">Add New Room</h1>
+                    <h1 class="add-room-heading">Edit Room</h1>
 
                     <p class="add-room-subtitle">
-                        List a new room on RoomFinder.
+                        Update the details of your room listing.
                     </p>
 
                 </div>
@@ -352,6 +390,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <label for="image">Room Image <span class="optional">(optional)</span></label>
 
+                        <?php if (!empty($room['image'])): ?>
+                            <div class="current-image-preview">
+                                <img
+                                    src="<?= htmlspecialchars(base_url($room['image'])) ?>"
+                                    alt="Current room image"
+                                    class="current-image-thumb"
+                                >
+                                <span class="field-hint">Current image. Upload a new one to replace it.</span>
+                            </div>
+                        <?php endif; ?>
+
                         <input
                             type="file"
                             id="image"
@@ -377,7 +426,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
 
                         <button type="submit" class="add-room-btn">
-                            Add Room
+                            Update Room
                         </button>
 
                     </div>

@@ -159,6 +159,41 @@ $stmt->close();
                                     <span>/ month</span>
                                 </div>
 
+                                <p class="room-card-type">
+                                    <?= htmlspecialchars($room['room_type']) ?>
+                                </p>
+
+                                <?php
+                                $facilitiesItems = array_values(
+                                    array_filter(
+                                        array_map('trim', preg_split('/[,|]/', $room['facilities'] ?? ''))
+                                    )
+                                );
+                                ?>
+                                <?php if (!empty($facilitiesItems)): ?>
+                                    <div class="room-card-facilities">
+                                        <span class="room-card-facilities-label">Facilities</span>
+                                        <span class="room-card-facilities-list">
+                                            <?= htmlspecialchars(implode(' • ', $facilitiesItems)) ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="room-card-actions">
+                                    <a href="view-room.php?id=<?= (int) $room['id'] ?>" class="room-card-btn room-card-btn-view">
+                                        View
+                                    </a>
+                                    <a href="edit-room.php?id=<?= (int) $room['id'] ?>" class="room-card-btn room-card-btn-edit">
+                                        Edit
+                                    </a>
+                                    <form action="delete-room.php" method="POST" class="room-card-delete-form" onsubmit="return confirm('Are you sure you want to delete this room?');">
+                                        <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+                                        <button type="submit" class="room-card-btn room-card-btn-delete">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+
                             </div>
 
                         </article>
