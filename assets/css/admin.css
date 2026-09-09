@@ -410,7 +410,7 @@
   color: #059669;
 }
 
-/* Status badges */
+/* Room status badges */
 
 .admin-badge-available {
   background: #d1fae5;
@@ -418,6 +418,23 @@
 }
 
 .admin-badge-booked {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Booking status badges */
+
+.admin-badge-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.admin-badge-approved {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.admin-badge-rejected {
   background: #fee2e2;
   color: #dc2626;
 }
@@ -586,6 +603,68 @@
   color: #64748b;
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* ========================================
+   ADMIN STATS (Summary Cards)
+========================================= */
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  transition: box-shadow 0.15s ease;
+}
+
+.admin-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admin-stat-number {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.admin-stat-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+.admin-stat-pending .admin-stat-number {
+  color: #b45309;
+}
+
+.admin-stat-pending {
+  border-color: #fde68a;
+}
+
+.admin-stat-approved .admin-stat-number {
+  color: #059669;
+}
+
+.admin-stat-approved {
+  border-color: #a7f3d0;
+}
+
+.admin-stat-rejected .admin-stat-number {
+  color: #dc2626;
+}
+
+.admin-stat-rejected {
+  border-color: #fecaca;
 }
 
 /* ========================================
@@ -791,6 +870,19 @@
     padding: 12px 14px;
   }
 
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .admin-stat-card {
+    padding: 18px 16px;
+  }
+
+  .admin-stat-number {
+    font-size: 26px;
+  }
+
   .admin-pagination {
     flex-direction: column;
     align-items: flex-start;
@@ -818,6 +910,19 @@
 
   .admin-page-subtitle {
     font-size: 13px;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .admin-stat-number {
+    font-size: 22px;
+  }
+
+  .admin-stat-label {
+    font-size: 12px;
   }
 
   .admin-btn {
