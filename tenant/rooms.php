@@ -143,9 +143,16 @@ $stmt->close();
                                     <?= htmlspecialchars($room['room_type']) ?>
                                 </p>
 
-                                <?php if (!empty($room['facilities'])): ?>
+                                <?php
+                                $tenantFacilitiesItems = array_values(
+                                    array_filter(
+                                        array_map('trim', preg_split('/[,|]/', $room['facilities'] ?? ''))
+                                    )
+                                );
+                                ?>
+                                <?php if (!empty($tenantFacilitiesItems)): ?>
                                     <p class="room-card-facilities">
-                                        <?= htmlspecialchars($room['facilities']) ?>
+                                        <?= htmlspecialchars(implode(' • ', $tenantFacilitiesItems)) ?>
                                     </p>
                                 <?php endif; ?>
 

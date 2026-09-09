@@ -159,18 +159,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <?= messages() ?>
 
-                    <?php if (isset($_SESSION['reset_otp'])): ?>
-
-                        <div class="alert alert-success">
-                            Development OTP:
-                            <strong>
-                                <?= htmlspecialchars($_SESSION['reset_otp']) ?>
-                            </strong>
-                        </div>
-
-                        <?php unset($_SESSION['reset_otp']); ?>
-
-                    <?php endif; ?>
                     <form class="auth-form" action="" method="POST">
 
                         <div class="form-group">

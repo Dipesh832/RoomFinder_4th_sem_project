@@ -230,8 +230,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($addPrice === '') {
         $addErrors[] = 'Price is required.';
-    } elseif (!is_numeric($addPrice) || (float) $addPrice < 0) {
-        $addErrors[] = 'Price must be a non-negative number.';
+    } elseif (!is_numeric($addPrice) || (float) $addPrice <= 0) {
+        $addErrors[] = 'Price must be a number greater than 0.';
     }
 
     if ($addRoomType === '') {
@@ -266,7 +266,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    $facilitiesDb = $addFacilities !== '' ? $addFacilities : null;
+    $facilitiesDb = $addFacilities !== ''
+        ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $addFacilities)))))
+        : null;
     $imageDb      = $uploadResult['path'];
 
     $insStmt = $conn->prepare("INSERT INTO rooms (owner_id, title, description, location, price, room_type, facilities, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -336,8 +338,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($editPrice === '') {
         $editErrors[] = 'Price is required.';
-    } elseif (!is_numeric($editPrice) || (float) $editPrice < 0) {
-        $editErrors[] = 'Price must be a non-negative number.';
+    } elseif (!is_numeric($editPrice) || (float) $editPrice <= 0) {
+        $editErrors[] = 'Price must be a number greater than 0.';
     }
 
     if ($editRoomType === '') {
@@ -410,7 +412,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    $facilitiesDb = $editFacilities !== '' ? $editFacilities : null;
+    $facilitiesDb = $editFacilities !== ''
+        ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $editFacilities)))))
+        : null;
     $newImageDb   = $uploadResult['path'];
 
     if ($newImageDb !== null) {

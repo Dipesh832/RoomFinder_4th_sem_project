@@ -117,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($createPassword === '') {
         $createErrors[] = 'Password is required.';
-    } elseif (strlen($createPassword) < 6) {
-        $createErrors[] = 'Password must be at least 6 characters.';
+    } elseif (strlen($createPassword) < 8) {
+        $createErrors[] = 'Password must be at least 8 characters.';
     }
 
     if (!in_array($createRole, $allowedRoles, true)) {
@@ -188,8 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $editErrors[] = 'Phone is required.';
     }
 
-    if ($editPassword !== '' && strlen($editPassword) < 6) {
-        $editErrors[] = 'New password must be at least 6 characters.';
+    if ($editPassword !== '' && strlen($editPassword) < 8) {
+        $editErrors[] = 'New password must be at least 8 characters.';
     }
 
     if (!in_array($editRole, $allowedRoles, true)) {
@@ -479,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     <div class="admin-form-group">
                         <label class="admin-form-label">Password <span class="required">*</span></label>
-                        <input type="password" name="password" class="admin-form-input" placeholder="Minimum 6 characters" minlength="6" required>
+                        <input type="password" name="password" class="admin-form-input" placeholder="Minimum 8 characters" minlength="8" required>
                         <div class="admin-form-hint">Password will be securely hashed before storage.</div>
                     </div>
                     <div class="admin-form-group">
@@ -528,7 +528,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     <div class="admin-form-group">
                         <label class="admin-form-label">New Password</label>
-                        <input type="password" name="password" id="edit-password" class="admin-form-input" placeholder="Leave blank to keep current password" minlength="6">
+                        <input type="password" name="password" id="edit-password" class="admin-form-input" placeholder="Leave blank to keep current password" minlength="8">
                         <div class="admin-form-hint">Leave empty to keep the existing password.</div>
                     </div>
                     <div class="admin-form-group">
