@@ -85,7 +85,8 @@ $dataSql = "SELECT
     r.status,
     r.created_at,
     u.name AS owner_name,
-    u.id AS owner_id
+    u.id AS owner_id,
+    (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND b.status = 'approved') AS approved_bookings
 FROM rooms r
 INNER JOIN users u ON r.owner_id = u.id
 {$whereClause}
@@ -347,18 +348,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $editStatus = 'available';
     }
 
+    // ─── Booking safety: block booked → available if approved booking exists ──
+    $hasApprovedBookings = false;
+    if ($editRoomId > 0 && $editStatus === 'available') {
+        $currentStatusStmt = $conn->prepare("SELECT status FROM rooms WHERE id = ?");
+        $currentStatusStmt->bind_param("i", $editRoomId);
+        $currentStatusStmt->execute();
+        $currentStatusRow = $currentStatusStmt->get_result()->fetch_assoc();
+        $currentStatusStmt->close();
+
+        if ($currentStatusRow && $currentStatusRow['status'] === 'booked') {
+            $approvedStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM bookings WHERE room_id = ? AND status = 'approved'");
+            $approvedStmt->bind_param("i", $editRoomId);
+            $approvedStmt->execute();
+            $approvedCount = (int) $approvedStmt->get_result()->fetch_assoc()['cnt'];
+            $approvedStmt->close();
+
+            if ($approvedCount > 0) {
+                $hasApprovedBookings = true;
+                $editErrors[] = 'This room cannot be changed to available because it has an approved booking.';
+            }
+        }
+    }
+
     if (!empty($editErrors)) {
         $_SESSION['error'] = implode(' ', $editErrors);
         $_SESSION['old_edit'] = [
-            'id'         => $editRoomId,
-            'owner_id'   => $editOwnerId,
-            'title'      => $editTitle,
-            'description'=> $editDesc,
-            'location'   => $editLocation,
-            'price'      => $editPrice,
-            'room_type'  => $editRoomType,
-            'facilities' => $editFacilities,
-            'status'     => $editStatus,
+            'id'                   => $editRoomId,
+            'owner_id'             => $editOwnerId,
+            'title'                => $editTitle,
+            'description'          => $editDesc,
+            'location'             => $editLocation,
+            'price'                => $editPrice,
+            'room_type'            => $editRoomType,
+            'facilities'           => $editFacilities,
+            'status'               => $editStatus,
+            'has_approved_bookings'=> $hasApprovedBookings,
         ];
         header("Location: " . base_url('admin/rooms'));
         exit;
@@ -370,15 +395,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if ($uploadResult['error'] !== '') {
         $_SESSION['error'] = $uploadResult['error'];
         $_SESSION['old_edit'] = [
-            'id'         => $editRoomId,
-            'owner_id'   => $editOwnerId,
-            'title'      => $editTitle,
-            'description'=> $editDesc,
-            'location'   => $editLocation,
-            'price'      => $editPrice,
-            'room_type'  => $editRoomType,
-            'facilities' => $editFacilities,
-            'status'     => $editStatus,
+            'id'                   => $editRoomId,
+            'owner_id'             => $editOwnerId,
+            'title'                => $editTitle,
+            'description'          => $editDesc,
+            'location'             => $editLocation,
+            'price'                => $editPrice,
+            'room_type'            => $editRoomType,
+            'facilities'           => $editFacilities,
+            'status'               => $editStatus,
+            'has_approved_bookings'=> $hasApprovedBookings,
         ];
         header("Location: " . base_url('admin/rooms'));
         exit;
@@ -414,15 +440,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             $_SESSION['error'] = 'Something went wrong. Please try again.';
             $_SESSION['old_edit'] = [
-                'id'         => $editRoomId,
-                'owner_id'   => $editOwnerId,
-                'title'      => $editTitle,
-                'description'=> $editDesc,
-                'location'   => $editLocation,
-                'price'      => $editPrice,
-                'room_type'  => $editRoomType,
-                'facilities' => $editFacilities,
-                'status'     => $editStatus,
+                'id'                   => $editRoomId,
+                'owner_id'             => $editOwnerId,
+                'title'                => $editTitle,
+                'description'          => $editDesc,
+                'location'             => $editLocation,
+                'price'                => $editPrice,
+                'room_type'            => $editRoomType,
+                'facilities'           => $editFacilities,
+                'status'               => $editStatus,
+                'has_approved_bookings'=> $hasApprovedBookings,
             ];
         }
     } else {
@@ -437,15 +464,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $updStmt->close();
             $_SESSION['error'] = 'Something went wrong. Please try again.';
             $_SESSION['old_edit'] = [
-                'id'         => $editRoomId,
-                'owner_id'   => $editOwnerId,
-                'title'      => $editTitle,
-                'description'=> $editDesc,
-                'location'   => $editLocation,
-                'price'      => $editPrice,
-                'room_type'  => $editRoomType,
-                'facilities' => $editFacilities,
-                'status'     => $editStatus,
+                'id'                   => $editRoomId,
+                'owner_id'             => $editOwnerId,
+                'title'                => $editTitle,
+                'description'          => $editDesc,
+                'location'             => $editLocation,
+                'price'                => $editPrice,
+                'room_type'            => $editRoomType,
+                'facilities'           => $editFacilities,
+                'status'               => $editStatus,
+                'has_approved_bookings'=> $hasApprovedBookings,
             ];
         }
     }
@@ -846,6 +874,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <option value="available">Available</option>
                             <option value="booked">Booked</option>
                         </select>
+                        <div id="edit-status-warning" class="admin-form-hint" style="display:none; color:#b45309; margin-top:6px;">
+                            This room has an approved booking and cannot be changed to Available.
+                        </div>
                     </div>
                 </div>
                 <div class="admin-modal-footer">
@@ -940,6 +971,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             preview.style.display = 'none';
         }
 
+        var statusWarning = document.getElementById('edit-status-warning');
+        if (room.status === 'booked' && parseInt(room.approved_bookings) > 0) {
+            statusWarning.style.display = 'block';
+        } else {
+            statusWarning.style.display = 'none';
+        }
+
         document.getElementById('edit-image').value = '';
         document.getElementById('edit-modal').classList.add('open');
     }
@@ -985,6 +1023,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('edit-room-type').value = editData.room_type;
         document.getElementById('edit-facilities').value = editData.facilities;
         document.getElementById('edit-status').value = editData.status;
+        var statusWarning = document.getElementById('edit-status-warning');
+        if (editData.has_approved_bookings) {
+            statusWarning.style.display = 'block';
+        } else {
+            statusWarning.style.display = 'none';
+        }
         document.getElementById('edit-modal').classList.add('open');
     })();
     <?php endif; ?>
