@@ -26,6 +26,13 @@ if ($roomId === '' || !is_numeric($roomId) || (int) $roomId <= 0) {
 $roomId = (int) $roomId;
 
 /*
+ * Helper: redirect back to the view-room detail page when applicable.
+ */
+function roomRedirect($roomId, $path) {
+    redirect("tenant/" . $path . "?id=" . $roomId);
+}
+
+/*
  * Verify the room exists and is available.
  * Also retrieve owner_id to prevent self-booking.
  */
@@ -49,12 +56,12 @@ if (!$room) {
 
 if ($room['status'] !== 'available') {
     $_SESSION['error'] = "This room is no longer available.";
-    redirect("tenant/rooms");
+    roomRedirect($roomId, 'view-room');
 }
 
 if ((int) $room['owner_id'] === $tenantId) {
     $_SESSION['error'] = "You cannot book your own room.";
-    redirect("tenant/rooms");
+    roomRedirect($roomId, 'view-room');
 }
 
 /*
@@ -76,7 +83,7 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $stmt->close();
     $_SESSION['error'] = "You already have a pending booking request for this room.";
-    redirect("tenant/rooms");
+    roomRedirect($roomId, 'view-room');
 }
 
 $stmt->close();
@@ -100,5 +107,5 @@ if ($stmt->execute()) {
 } else {
     $stmt->close();
     $_SESSION['error'] = "Something went wrong. Please try again.";
-    redirect("tenant/rooms");
+    roomRedirect($roomId, 'view-room');
 }

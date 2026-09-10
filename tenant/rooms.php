@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../middleware/require_tenant.php';
 
 $userName = $_SESSION['user']['name'] ?? 'Tenant';
+$tenantId = $_SESSION['user']['id'] ?? 0;
 
 /*
  * Fetch all currently available rooms.
@@ -31,6 +32,31 @@ $result = $stmt->get_result();
 $rooms = $result->fetch_all(MYSQLI_ASSOC);
 
 $stmt->close();
+
+/*
+ * Fetch the logged-in tenant's pending booking room IDs once, so each
+ * room card can show the correct booking state without a per-room query.
+ */
+$pendingRoomIds = [];
+
+if ($tenantId > 0) {
+    $stmt = $conn->prepare("
+        SELECT room_id
+        FROM bookings
+        WHERE tenant_id = ?
+          AND status = 'pending'
+    ");
+
+    $stmt->bind_param("i", $tenantId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $pendingRoomIds[(int) $row['room_id']] = true;
+    }
+
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -160,12 +186,23 @@ $stmt->close();
                                     <?= htmlspecialchars($room['description']) ?>
                                 </p>
 
-                                <form action="<?=base_url('tenant/book-room') ?>" method="POST" class="room-card-actions">
-                                    <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
-                                    <button type="submit" class="request-booking-btn">
-                                        Request Booking
-                                    </button>
-                                </form>
+                                <div class="room-card-actions">
+                                    <a href="view-room.php?id=<?= (int) $room['id'] ?>" class="room-card-btn room-card-btn-view">
+                                        View Details
+                                    </a>
+                                    <?php if (isset($pendingRoomIds[(int) $room['id']])): ?>
+                                        <div class="room-card-btn room-card-btn-pending" role="status">
+                                            Booking Requested
+                                        </div>
+                                    <?php else: ?>
+                                        <form action="<?= base_url('tenant/book-room') ?>" method="POST" class="room-card-booking-form">
+                                            <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+                                            <button type="submit" class="room-card-btn room-card-btn-booking">
+                                                Request Booking
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
 
                             </div>
 
