@@ -65,6 +65,34 @@ $result = $stmt->get_result();
 $hasPendingBooking = $result->num_rows > 0;
 $stmt->close();
 
+/*
+ * If a previous submission failed server-side, book-room.php stashes the
+ * entered data in the session. Restore it so the tenant does not have to
+ * retype everything, then clear it.
+ */
+$formNumber = 1;
+$formRelationship = '';
+$formRelationshipDetail = '';
+$formMembers = [];
+$showBookingForm = false;
+
+if (isset($_SESSION['booking_form_data']) && is_array($_SESSION['booking_form_data'])) {
+    $formData = $_SESSION['booking_form_data'];
+    unset($_SESSION['booking_form_data']);
+
+    $showBookingForm = true;
+    $formRelationship = trim((string) ($formData['relationship'] ?? ''));
+    $formRelationshipDetail = trim((string) ($formData['relationship_detail'] ?? ''));
+
+    if (isset($formData['number_of_people']) && (int) $formData['number_of_people'] > 0) {
+        $formNumber = min((int) $formData['number_of_people'], 20);
+    }
+
+    if (isset($formData['members']) && is_array($formData['members'])) {
+        $formMembers = $formData['members'];
+    }
+}
+
 $facilitiesList = array_values(
     array_filter(
         array_map('trim', preg_split('/[,|]/', $room['facilities'] ?? ''))
@@ -189,13 +217,9 @@ $pagePrice   = number_format((float) $room['price'], 2);
                         </form>
 
                         <?php if ($room['status'] === 'available' && !$hasPendingBooking): ?>
-                            <form action="<?= base_url('tenant/book-room') ?>" method="POST">
-                                <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
-                                <input type="hidden" name="redirect" value="view-room">
-                                <button type="submit" class="view-room-action-btn view-room-action-booking">
-                                    Request Booking
-                                </button>
-                            </form>
+                            <button type="button" id="booking-form-trigger" class="view-room-action-btn view-room-action-booking">
+                                Request Booking
+                            </button>
                         <?php elseif ($hasPendingBooking): ?>
                             <div class="view-room-action-btn view-room-action-pending">
                                 Booking Requested
@@ -214,7 +238,233 @@ $pagePrice   = number_format((float) $room['price'], 2);
 
         </section>
 
+        <?php if ($room['status'] === 'available' && !$hasPendingBooking): ?>
+
+            <section id="booking-form" class="booking-form-section <?= $showBookingForm ? '' : 'is-hidden' ?>">
+
+                <div class="booking-form-card">
+
+                    <h2 class="booking-form-title">Request Booking</h2>
+                    <p class="booking-form-subtitle">Tell the owner how many people will live in this room and who they are.</p>
+
+                    <form action="<?= base_url('tenant/book-room') ?>" method="POST">
+
+                        <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+
+                        <div class="booking-form-row">
+
+                            <div class="booking-form-group">
+                                <label for="relationship">Relationship</label>
+                                <select name="relationship" id="relationship" required>
+                                    <option value="" <?= $formRelationship === '' ? 'selected' : '' ?> disabled>Choose relationship</option>
+                                    <?php foreach (['Self', 'Family', 'Friends', 'Couple', 'Relatives', 'Colleagues', 'Other'] as $rel): ?>
+                                        <option value="<?= htmlspecialchars($rel) ?>" <?= $formRelationship === $rel ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($rel) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <div id="relationship-detail-group" class="relationship-detail-group <?= $formRelationship === 'Other' ? '' : 'is-hidden' ?>">
+                                    <label for="relationship_detail">Please specify</label>
+                                    <input
+                                        type="text"
+                                        name="relationship_detail"
+                                        id="relationship_detail"
+                                        maxlength="100"
+                                        placeholder="e.g. classmates, roommates, cousins"
+                                        value="<?= htmlspecialchars($formRelationshipDetail) ?>"
+                                        <?= $formRelationship === 'Other' ? 'required' : '' ?>
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="booking-form-group">
+                                <label for="occupant-count">Number of people</label>
+                                <input type="number" name="number_of_people" id="occupant-count" min="1" max="20" value="<?= (int) $formNumber ?>" required>
+                            </div>
+
+                        </div>
+
+                        <h3 class="booking-occupants-heading">People living in the room</h3>
+                        <div id="occupant-list" class="occupant-list"></div>
+
+                        <div class="booking-form-actions">
+                            <button type="submit" class="view-room-action-btn view-room-action-booking">
+                                Submit Booking Request
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </section>
+
+        <?php endif; ?>
+
     </main>
+
+    <script id="booking-form-config" type="application/json">
+        <?=
+        json_encode([
+            'number'  => (int) $formNumber,
+            'max'     => 20,
+            'members' => $formMembers,
+        ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        ?>
+    </script>
+
+    <script>
+        (function () {
+            var section = document.getElementById('booking-form');
+            if (!section) {
+                return;
+            }
+
+            var trigger = document.getElementById('booking-form-trigger');
+            if (trigger) {
+                trigger.addEventListener('click', function () {
+                    section.classList.toggle('is-hidden');
+                    if (!section.classList.contains('is-hidden')) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+
+            var configEl = document.getElementById('booking-form-config');
+            var config = configEl ? JSON.parse(configEl.textContent) : { number: 1, max: 20, members: [] };
+
+            var countInput = document.getElementById('occupant-count');
+            var listEl = document.getElementById('occupant-list');
+            if (!countInput || !listEl) {
+                return;
+            }
+
+            var GENDERS = ['Male', 'Female', 'Other'];
+            var MAX = config.max || 20;
+
+            function esc(value) {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function personSectionHTML(data, personNo) {
+                data = data || {};
+                var name = esc(data.name || '');
+                var contact = esc(data.contact_number || '');
+                var address = esc(data.permanent_address || '');
+                var selectedGender = data.gender || '';
+                var fieldIndex = personNo - 1;
+
+                var genderOptions = GENDERS.map(function (g) {
+                    var selected = g === selectedGender ? ' selected' : '';
+                    return '<option value="' + g + '"' + selected + '>' + g + '</option>';
+                }).join('');
+
+                return '' +
+                    '<div class="occupant-section">' +
+                        '<h4 class="occupant-section-title">Person ' + personNo + '</h4>' +
+                        '<div class="occupant-fields">' +
+                            '<div class="booking-form-group">' +
+                                '<label for="member-' + fieldIndex + '-name">Full name</label>' +
+                                '<input type="text" name="members[' + fieldIndex + '][name]" id="member-' + fieldIndex + '-name" value="' + name + '" maxlength="100" required>' +
+                            '</div>' +
+                            '<div class="booking-form-group">' +
+                                '<label for="member-' + fieldIndex + '-gender">Gender</label>' +
+                                '<select name="members[' + fieldIndex + '][gender]" id="member-' + fieldIndex + '-gender" required>' +
+                                    '<option value="" disabled' + (selectedGender === '' ? ' selected' : '') + '>Select gender</option>' +
+                                    genderOptions +
+                                '</select>' +
+                            '</div>' +
+                            '<div class="booking-form-group">' +
+                                '<label for="member-' + fieldIndex + '-contact">Contact number</label>' +
+                                '<input type="text" name="members[' + fieldIndex + '][contact_number]" id="member-' + fieldIndex + '-contact" value="' + contact + '" maxlength="15" required>' +
+                            '</div>' +
+                            '<div class="booking-form-group">' +
+                                '<label for="member-' + fieldIndex + '-address">Permanent address</label>' +
+                                '<input type="text" name="members[' + fieldIndex + '][permanent_address]" id="member-' + fieldIndex + '-address" value="' + address + '" maxlength="255" required>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            var renderTimer = null;
+
+            function renderPeople() {
+                var count = parseInt(countInput.value, 10);
+
+                // Only rebuild the occupant list for a committed, valid number.
+                // Empty or mid-edit values are ignored so the user can freely
+                // clear the field and retype without the input being rewritten.
+                if (isNaN(count) || count < 1 || count > MAX) {
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                for (var i = 1; i <= count; i++) {
+                    listEl.insertAdjacentHTML('beforeend', personSectionHTML(config.members[i - 1] || null, i));
+                }
+            }
+
+            countInput.addEventListener('change', function () {
+                clearTimeout(renderTimer);
+                renderPeople();
+            });
+
+            countInput.addEventListener('input', function () {
+                clearTimeout(renderTimer);
+                renderTimer = setTimeout(renderPeople, 300);
+            });
+
+            renderPeople();
+
+            var bookingFormEl = section.querySelector('form');
+            if (bookingFormEl) {
+                bookingFormEl.addEventListener('submit', function () {
+                    clearTimeout(renderTimer);
+                    renderPeople();
+                });
+            }
+
+            if (window.location.hash === '#booking-form') {
+                section.classList.remove('is-hidden');
+                setTimeout(function () {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 60);
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var relationshipSelect = document.getElementById('relationship');
+            var detailGroup = document.getElementById('relationship-detail-group');
+            var detailInput = detailGroup ? detailGroup.querySelector('input[name="relationship_detail"]') : null;
+
+            if (!relationshipSelect || !detailGroup || !detailInput) {
+                return;
+            }
+
+            function syncRelationshipDetail() {
+                var isOther = relationshipSelect.value === 'Other';
+
+                detailGroup.classList.toggle('is-hidden', !isOther);
+
+                if (isOther) {
+                    detailInput.setAttribute('required', 'required');
+                } else {
+                    detailInput.removeAttribute('required');
+                }
+            }
+
+            relationshipSelect.addEventListener('change', syncRelationshipDetail);
+            syncRelationshipDetail();
+        })();
+    </script>
 
     <?php include '../includes/footer.php'; ?>
 

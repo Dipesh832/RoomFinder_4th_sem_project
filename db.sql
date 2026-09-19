@@ -61,6 +61,8 @@ CREATE TABLE bookings (
     tenant_id INT NOT NULL,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     booking_date DATE NOT NULL,
+    relationship VARCHAR(50) NOT NULL,
+    relationship_detail VARCHAR(100) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     pending_flag TINYINT(1)
@@ -73,6 +75,21 @@ CREATE TABLE bookings (
         ON UPDATE CASCADE,
 
     FOREIGN KEY (tenant_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+CREATE TABLE booking_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    gender ENUM('Male', 'Female', 'Other') NOT NULL,
+    contact_number VARCHAR(20) NOT NULL,
+    permanent_address VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (booking_id) REFERENCES bookings(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );

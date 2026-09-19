@@ -27,9 +27,51 @@ $roomId = (int) $roomId;
 
 /*
  * Helper: redirect back to the view-room detail page when applicable.
+ * An optional URL fragment can be appended to land on the booking form.
  */
-function roomRedirect($roomId, $path) {
-    redirect("tenant/" . $path . "?id=" . $roomId);
+function roomRedirect($roomId, $path, $fragment = '') {
+    $uri = "tenant/" . $path . "?id=" . $roomId;
+    if ($fragment !== '') {
+        $uri .= '#' . $fragment;
+    }
+    redirect($uri);
+}
+
+/*
+ * Allowed values for the group relationship and each occupant's gender.
+ */
+$relationshipMap = [
+    'self'       => 'Self',
+    'family'     => 'Family',
+    'friends'    => 'Friends',
+    'couple'     => 'Couple',
+    'relatives'  => 'Relatives',
+    'colleagues' => 'Colleagues',
+    'other'      => 'Other',
+];
+
+$genderMap = [
+    'male'   => 'Male',
+    'female' => 'Female',
+    'other'  => 'Other',
+];
+
+const MAX_OCCUPANTS = 20;
+
+/*
+ * Nepal-friendly contact number check.
+ * Allows digits, a leading +, and spaces/dashes/parentheses.
+ * Must contain 7-15 digits and fit into VARCHAR(15) as submitted.
+ */
+function isValidContact($value) {
+    if (strlen($value) > 15) {
+        return false;
+    }
+    if (!preg_match('/^[0-9+\s\-()]+$/', $value)) {
+        return false;
+    }
+    $digits = preg_replace('/[^0-9]/', '', $value);
+    return strlen($digits) >= 7 && strlen($digits) <= 15;
 }
 
 /*
@@ -106,28 +148,222 @@ if ($result->num_rows > 0) {
 $stmt->close();
 
 /*
- * Insert the booking request.
+ * Validate the group relationship.
  */
-$stmt = $conn->prepare("
-    INSERT INTO bookings
-        (room_id, tenant_id, status, booking_date)
-    VALUES
-        (?, ?, 'pending', CURDATE())
-");
+$relationship = trim($_POST['relationship'] ?? '');
+$relationshipCanonical = $relationshipMap[strtolower($relationship)] ?? null;
 
-$stmt->bind_param("ii", $roomId, $tenantId);
+if ($relationshipCanonical === null) {
+    $conn->rollback();
+    $_SESSION['error'] = "Please choose a valid relationship for the occupants.";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
 
-if ($stmt->execute()) {
+/*
+ * Validate the relationship detail. Only "Other" carries a free-text
+ * explanation; every other relationship stores NULL.
+ */
+$relationshipDetail = null;
+
+if ($relationshipCanonical === 'Other') {
+    $relationshipDetail = trim($_POST['relationship_detail'] ?? '');
+
+    if ($relationshipDetail === '') {
+        $conn->rollback();
+        $_SESSION['booking_form_data'] = [
+            'relationship'         => $relationship,
+            'relationship_detail'  => $relationshipDetail,
+            'number_of_people'     => trim($_POST['number_of_people'] ?? ''),
+            'members'              => $_POST['members'] ?? [],
+        ];
+        $_SESSION['error'] = "Please specify what the relationship is.";
+        roomRedirect($roomId, 'view-room', 'booking-form');
+    }
+
+    if (strlen($relationshipDetail) > 100) {
+        $conn->rollback();
+        $_SESSION['booking_form_data'] = [
+            'relationship'         => $relationship,
+            'relationship_detail'  => $relationshipDetail,
+            'number_of_people'     => trim($_POST['number_of_people'] ?? ''),
+            'members'              => $_POST['members'] ?? [],
+        ];
+        $_SESSION['error'] = "Relationship details must be 100 characters or fewer.";
+        roomRedirect($roomId, 'view-room', 'booking-form');
+    }
+}
+
+/*
+ * Validate the declared number of people. The list of members actually
+ * submitted is the final authority; this field is cross-checked below.
+ */
+$declaredNumber = trim($_POST['number_of_people'] ?? '');
+
+if ($declaredNumber === '' || filter_var($declaredNumber, FILTER_VALIDATE_INT) === false) {
+    $conn->rollback();
+    $_SESSION['error'] = "Please enter the number of people who will live in the room.";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+$declaredNumber = (int) $declaredNumber;
+
+if ($declaredNumber < 1 || $declaredNumber > MAX_OCCUPANTS) {
+    $conn->rollback();
+    $_SESSION['error'] = "Number of people must be between 1 and " . MAX_OCCUPANTS . ".";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+$rawMembers = $_POST['members'] ?? null;
+
+if (!is_array($rawMembers) || $rawMembers === []) {
+    $conn->rollback();
+    $_SESSION['error'] = "Please provide details for at least one occupant.";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+if (count($rawMembers) !== $declaredNumber) {
+    $conn->rollback();
+    $_SESSION['error'] = "The number of people does not match the submitted occupant details.";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+/*
+ * Validate every submitted occupant. Nothing is saved until the whole
+ * set is valid, and no incomplete occupant record is ever written.
+ */
+$errors = [];
+$members = [];
+$prefillMembers = [];
+
+foreach ($rawMembers as $index => $raw) {
+    $personNo = (int) $index + 1;
+
+    if (!is_array($raw)) {
+        $errors[] = "Occupant " . $personNo . " details are invalid.";
+        continue;
+    }
+
+    $name    = trim((string) ($raw['name'] ?? ''));
+    $gender  = trim((string) ($raw['gender'] ?? ''));
+    $contact = trim((string) ($raw['contact_number'] ?? ''));
+    $address = trim((string) ($raw['permanent_address'] ?? ''));
+
+    $genderCanonical = $genderMap[strtolower($gender)] ?? null;
+    $personValid = true;
+
+    $prefillMembers[] = [
+        'name'              => $name,
+        'gender'            => $gender,
+        'contact_number'    => $contact,
+        'permanent_address' => $address,
+    ];
+
+    if ($name === '') {
+        $errors[] = "Name is required for Person " . $personNo . ".";
+        $personValid = false;
+    } elseif (strlen($name) > 100) {
+        $errors[] = "Name for Person " . $personNo . " is too long.";
+        $personValid = false;
+    }
+
+    if ($genderCanonical === null) {
+        $errors[] = "Choose a valid gender for Person " . $personNo . ".";
+        $personValid = false;
+    }
+
+    if ($contact === '') {
+        $errors[] = "Contact number is required for Person " . $personNo . ".";
+        $personValid = false;
+    } elseif (!isValidContact($contact)) {
+        $errors[] = "Contact number for Person " . $personNo . " is invalid.";
+        $personValid = false;
+    }
+
+    if ($address === '') {
+        $errors[] = "Permanent address is required for Person " . $personNo . ".";
+        $personValid = false;
+    } elseif (strlen($address) > 255) {
+        $errors[] = "Permanent address for Person " . $personNo . " is too long.";
+        $personValid = false;
+    }
+
+    if ($personValid) {
+        $members[] = [
+            'name'              => $name,
+            'gender'            => $genderCanonical,
+            'contact_number'    => $contact,
+            'permanent_address' => $address,
+        ];
+    }
+}
+
+if ($errors !== []) {
+    $conn->rollback();
+    $_SESSION['booking_form_data'] = [
+        'relationship'         => $relationship,
+        'relationship_detail'  => $relationshipDetail,
+        'number_of_people'     => count($rawMembers),
+        'members'              => $prefillMembers,
+    ];
+    $_SESSION['error'] = implode(" ", $errors);
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+/*
+ * Save the booking and every occupant in ONE transaction.
+ * If any member insert fails the whole request is rolled back,
+ * including the booking row itself.
+ */
+$duplicateKeyHit = false;
+
+try {
+    $stmt = $conn->prepare("
+        INSERT INTO bookings
+            (room_id, tenant_id, status, booking_date, relationship, relationship_detail)
+        VALUES
+            (?, ?, 'pending', CURDATE(), ?, ?)
+    ");
+
+    $stmt->bind_param("iiss", $roomId, $tenantId, $relationshipCanonical, $relationshipDetail);
+
+    if (!$stmt->execute()) {
+        $duplicateKeyHit = ($conn->errno === 1062);
+        throw new Exception($stmt->error);
+    }
+
+    $bookingId = $conn->insert_id;
+    $stmt->close();
+
+    $stmt = $conn->prepare("
+        INSERT INTO booking_members
+            (booking_id, name, gender, contact_number, permanent_address)
+        VALUES
+            (?, ?, ?, ?, ?)
+    ");
+
+    $stmt->bind_param("issss", $bid, $bName, $bGender, $bContact, $bAddress);
+
+    foreach ($members as $member) {
+        $bid      = $bookingId;
+        $bName    = $member['name'];
+        $bGender  = $member['gender'];
+        $bContact = $member['contact_number'];
+        $bAddress = $member['permanent_address'];
+
+        if (!$stmt->execute()) {
+            throw new Exception($stmt->error);
+        }
+    }
+
     $stmt->close();
     $conn->commit();
+
     $_SESSION['success'] = "Booking request submitted. Awaiting owner approval.";
     redirect("tenant/bookings");
-} else {
-    $isDuplicate = ($conn->errno === 1062);
-    $stmt->close();
+} catch (Exception $e) {
     $conn->rollback();
 
-    if ($isDuplicate) {
+    if ($duplicateKeyHit) {
         $_SESSION['error'] = "You already have a pending booking request for this room.";
     } else {
         $_SESSION['error'] = "Something went wrong. Please try again.";

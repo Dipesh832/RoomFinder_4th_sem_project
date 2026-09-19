@@ -312,3 +312,136 @@
     font-size: 12px;
   }
 }
+
+/* ========================================
+   TENANT VIEW ROOM - BOOKING FORM
+========================================= */
+
+.booking-form-section {
+  margin-top: 28px;
+}
+
+.booking-form-section.is-hidden {
+  display: none;
+}
+
+.booking-form-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px;
+}
+
+.booking-form-title {
+  margin: 0 0 4px;
+
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.booking-form-subtitle {
+  margin: 0 0 22px;
+
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.booking-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.booking-form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.booking-form-group label {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.booking-form-group input[type="text"],
+.booking-form-group input[type="number"],
+.booking-form-group select {
+  width: 100%;
+  padding: 12px 16px;
+
+  background: #f8fafc;
+  border: 1px solid #dbe3ed;
+  border-radius: 10px;
+
+  color: #111827;
+  font-size: 15px;
+  font-family: inherit;
+
+  outline: none;
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.booking-form-group input:focus,
+.booking-form-group select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.relationship-detail-group {
+  margin-top: 12px;
+}
+
+.relationship-detail-group.is-hidden {
+  display: none;
+}
+
+.booking-occupants-heading {
+  margin: 8px 0 16px;
+
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.occupant-section {
+  background: #f8fafc;
+  border: 1px solid #e9eef5;
+  border-radius: 12px;
+
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.occupant-section-title {
+  margin: 0 0 16px;
+
+  font-size: 15px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.occupant-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 18px;
+}
+
+.booking-form-actions {
+  margin-top: 8px;
+}
+
+.booking-form-actions .view-room-action-booking {
+  max-width: 280px;
+}
+
+@media (max-width: 640px) {
+  .booking-form-row,
+  .occupant-fields {
+    grid-template-columns: 1fr;
+  }
+}

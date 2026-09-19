@@ -16,6 +16,8 @@ $stmt = $conn->prepare("
     SELECT
         bookings.id,
         bookings.status,
+        bookings.relationship,
+        bookings.relationship_detail,
         bookings.booking_date,
         bookings.created_at,
 
@@ -51,6 +53,36 @@ $result = $stmt->get_result();
 $bookings = $result->fetch_all(MYSQLI_ASSOC);
 
 $stmt->close();
+
+/*
+ * Fetch all booking members for the listed bookings in one query and
+ * group them by booking_id so each card can render its occupants.
+ */
+$membersByBooking = [];
+
+if (!empty($bookings)) {
+    $bookingIds = array_map('intval', array_column($bookings, 'id'));
+    $placeholders = implode(',', array_fill(0, count($bookingIds), '?'));
+
+    $stmt = $conn->prepare("
+        SELECT booking_id, name, gender, contact_number, permanent_address
+        FROM booking_members
+        WHERE booking_id IN (" . $placeholders . ")
+        ORDER BY booking_id, id
+    ");
+
+    $types = str_repeat('i', count($bookingIds));
+    $stmt->bind_param($types, ...$bookingIds);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $membersByBooking[(int) $row['booking_id']][] = $row;
+    }
+
+    $stmt->close();
+}
 ?>
 
 <!DOCTYPE html>
@@ -233,6 +265,59 @@ $stmt->close();
                                             </form>
 
                                         </div>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+                                <div class="booking-request-occupants">
+
+                                    <h4 class="booking-request-section-title">Occupants</h4>
+
+                                    <p class="booking-request-relationship">
+                                        <strong>Relationship:</strong>
+                                        <?= htmlspecialchars($booking['relationship']) ?>
+                                    </p>
+
+                                    <?php if (!empty($booking['relationship_detail'])): ?>
+
+                                        <p class="booking-request-relationship-detail">
+                                            <strong>Details:</strong>
+                                            <?= htmlspecialchars($booking['relationship_detail']) ?>
+                                        </p>
+
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($membersByBooking[(int) $booking['id']])): ?>
+
+                                        <div class="booking-members-grid">
+
+                                            <?php foreach ($membersByBooking[(int) $booking['id']] as $member): ?>
+
+                                                <div class="booking-member-card">
+
+                                                    <p class="booking-member-name">
+                                                        <?= htmlspecialchars($member['name']) ?>
+                                                    </p>
+
+                                                    <div class="booking-member-meta">
+                                                        <span class="booking-member-gender"><?= htmlspecialchars($member['gender']) ?></span>
+                                                        <span class="booking-member-contact"><?= htmlspecialchars($member['contact_number']) ?></span>
+                                                    </div>
+
+                                                    <p class="booking-member-address">
+                                                        <?= htmlspecialchars($member['permanent_address']) ?>
+                                                    </p>
+
+                                                </div>
+
+                                            <?php endforeach; ?>
+
+                                        </div>
+
+                                    <?php else: ?>
+
+                                        <p class="booking-members-empty">No occupant details recorded.</p>
 
                                     <?php endif; ?>
 

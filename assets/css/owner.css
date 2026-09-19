@@ -2635,3 +2635,95 @@
     font-size: 13px;
   }
 }
+
+/* ========================================
+   BOOKING REQUEST OCCUPANTS
+========================================= */
+
+.booking-request-details .booking-request-occupants {
+  grid-column: 1 / -1;
+  border-left: none;
+  border-top: 1px solid #f1f5f9;
+}
+
+.booking-members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.booking-member-card {
+  background: #f8fafc;
+  border: 1px solid #e9eef5;
+  border-radius: 10px;
+
+  padding: 14px 16px;
+}
+
+.booking-member-name {
+  margin: 0 0 6px;
+
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.booking-member-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+
+  margin: 0 0 8px;
+}
+
+.booking-member-gender {
+  padding: 2px 10px;
+
+  background: #ecfdf5;
+  border-radius: 999px;
+
+  color: #059669;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.booking-member-contact {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.booking-member-address {
+  margin: 0;
+
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.booking-members-empty {
+  margin: 0;
+
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+.booking-request-relationship {
+  margin: 0 0 6px;
+
+  color: #334155;
+  font-size: 13px;
+}
+
+.booking-request-relationship-detail {
+  margin: 0 0 12px;
+
+  color: #64748b;
+  font-size: 13px;
+}
+
+.booking-members-grid {
+    grid-template-columns: 1fr;
+  }
+}

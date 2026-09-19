@@ -195,12 +195,9 @@ if ($tenantId > 0) {
                                             Booking Requested
                                         </div>
                                     <?php else: ?>
-                                        <form action="<?= base_url('tenant/book-room') ?>" method="POST" class="room-card-booking-form">
-                                            <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
-                                            <button type="submit" class="room-card-btn room-card-btn-booking">
-                                                Request Booking
-                                            </button>
-                                        </form>
+                                        <a href="view-room.php?id=<?= (int) $room['id'] ?>#booking-form" class="room-card-btn room-card-btn-booking">
+                                            Request Booking
+                                        </a>
                                     <?php endif; ?>
                                 </div>
 
