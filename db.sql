@@ -1,6 +1,6 @@
 CREATE DATABASE roomfinderDB;
 
-USE roomfinder DB;
+USE roomfinderDB;
 
 
 CREATE TABLE users (
@@ -62,6 +62,11 @@ CREATE TABLE bookings (
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     booking_date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    pending_flag TINYINT(1)
+        GENERATED ALWAYS AS (IF(status = 'pending', 1, NULL)) STORED,
+
+    UNIQUE KEY uq_pending_room_tenant (room_id, tenant_id, pending_flag),
 
     FOREIGN KEY (room_id) REFERENCES rooms(id)
         ON DELETE CASCADE
