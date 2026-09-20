@@ -56,8 +56,6 @@ $genderMap = [
     'other'  => 'Other',
 ];
 
-const MAX_OCCUPANTS = 20;
-
 /*
  * Nepal-friendly contact number check.
  * Allows digits, a leading +, and spaces/dashes/parentheses.
@@ -89,7 +87,7 @@ $conn->begin_transaction();
  * Also retrieve owner_id to prevent self-booking.
  */
 $stmt = $conn->prepare("
-    SELECT id, owner_id, status
+    SELECT id, owner_id, status, max_occupants
     FROM rooms
     WHERE id = ?
     LIMIT 1
@@ -207,9 +205,22 @@ if ($declaredNumber === '' || filter_var($declaredNumber, FILTER_VALIDATE_INT) =
 
 $declaredNumber = (int) $declaredNumber;
 
-if ($declaredNumber < 1 || $declaredNumber > MAX_OCCUPANTS) {
+/*
+ * The room's max_occupants (set by the owner, 1 - 20) is the hard limit.
+ * This check runs on the server so a tenant cannot bypass the limit by
+ * editing the HTML or bypassing the browser's max attribute.
+ */
+$roomMaxOccupants = max(1, (int) $room['max_occupants']);
+
+if ($declaredNumber < 1) {
     $conn->rollback();
-    $_SESSION['error'] = "Number of people must be between 1 and " . MAX_OCCUPANTS . ".";
+    $_SESSION['error'] = "Number of people must be at least 1.";
+    roomRedirect($roomId, 'view-room', 'booking-form');
+}
+
+if ($declaredNumber > $roomMaxOccupants) {
+    $conn->rollback();
+    $_SESSION['error'] = "This property allows a maximum of " . $roomMaxOccupants . " occupants.";
     roomRedirect($roomId, 'view-room', 'booking-form');
 }
 

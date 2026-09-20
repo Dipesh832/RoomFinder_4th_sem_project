@@ -26,6 +26,15 @@
   line-height: 1.4;
 }
 
+.room-card-max-occupants {
+  margin: 0;
+
+  color: #059669;
+
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .room-card-facilities {
   margin: 0;
 
@@ -303,6 +312,7 @@
 
 @media (max-width: 600px) {
   .room-card-type,
+  .room-card-max-occupants,
   .room-card-facilities,
   .room-card-description {
     font-size: 13px;

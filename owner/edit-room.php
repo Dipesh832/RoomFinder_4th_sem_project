@@ -15,7 +15,7 @@ if ($roomId <= 0) {
  * Fetch room and verify ownership.
  */
 $stmt = $conn->prepare("
-    SELECT id, title, description, location, price, room_type, facilities, image, status
+    SELECT id, title, description, location, price, room_type, max_occupants, facilities, image, status
     FROM rooms
     WHERE id = ? AND owner_id = ?
 ");
@@ -36,22 +36,41 @@ if (!is_dir($uploadDir)) {
 }
 
 $errors = [
-    'title'       => '',
-    'description' => '',
-    'location'    => '',
-    'price'       => '',
-    'room_type'   => '',
-    'facilities'  => '',
-    'image'       => '',
+    'title'         => '',
+    'description'   => '',
+    'location'      => '',
+    'price'         => '',
+    'room_type'     => '',
+    'max_occupants' => '',
+    'facilities'    => '',
+    'image'         => '',
 ];
 
 $old = [
-    'title'       => $room['title'],
-    'description' => $room['description'],
-    'location'    => $room['location'],
-    'price'       => $room['price'],
-    'room_type'   => $room['room_type'],
-    'facilities'  => $room['facilities'] ?? '',
+    'title'         => $room['title'],
+    'description'   => $room['description'],
+    'location'      => $room['location'],
+    'price'         => $room['price'],
+    'room_type'     => $room['room_type'],
+    'max_occupants' => $room['max_occupants'],
+    'facilities'    => $room['facilities'] ?? '',
+];
+
+$roomTypes = [
+    'Single Room',
+    'Double Room',
+    'Shared Room',
+    '1RK',
+    '1BHK',
+    '2BHK',
+    '3BHK',
+    '2BK',
+];
+
+$legacyRoomTypeMap = [
+    'single' => 'Single Room',
+    'double' => 'Double Room',
+    'shared' => 'Shared Room',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -61,14 +80,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $location    = trim($_POST['location'] ?? '');
     $price       = trim($_POST['price'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
+    $maxOccupants = trim($_POST['max_occupants'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
 
-    $old['title']       = $title;
-    $old['description'] = $description;
-    $old['location']    = $location;
-    $old['price']       = $price;
-    $old['room_type']   = $roomType;
-    $old['facilities']  = $facilities;
+    $old['title']         = $title;
+    $old['description']   = $description;
+    $old['location']      = $location;
+    $old['price']         = $price;
+    $old['room_type']     = $roomType;
+    $old['max_occupants'] = $maxOccupants;
+    $old['facilities']    = $facilities;
 
     if (empty($title)) {
         $errors['title'] = "Room title is required";
@@ -90,8 +111,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['price'] = "Price must be a number greater than 0";
     }
 
-    if (empty($roomType)) {
-        $errors['room_type'] = "Room type is required";
+    if (!in_array($roomType, $roomTypes, true)) {
+        $errors['room_type'] = "Please choose a valid room type.";
+    }
+
+    if ($maxOccupants === '' || filter_var($maxOccupants, FILTER_VALIDATE_INT) === false) {
+        $errors['max_occupants'] = "Maximum occupants is required";
+    } elseif ((int) $maxOccupants < 1 || (int) $maxOccupants > 20) {
+        $errors['max_occupants'] = "Maximum occupants must be between 1 and 20";
     }
 
     $newImagePath = null;
@@ -160,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $sql = "UPDATE rooms
                 SET title = ?, description = ?, location = ?, price = ?,
-                    room_type = ?, facilities = ?, image = ?
+                    room_type = ?, facilities = ?, image = ?, max_occupants = ?
                 WHERE id = ? AND owner_id = ?";
 
         $stmt = mysqli_prepare($conn, $sql);
@@ -168,10 +195,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $facilitiesDb = $facilities !== ''
             ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $facilities)))))
             : null;
+        $maxOccupantsDb = (int) $maxOccupants;
 
         mysqli_stmt_bind_param(
             $stmt,
-            "sssdsssii",
+            "sssdsssiii",
             $title,
             $description,
             $location,
@@ -179,6 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $roomType,
             $facilitiesDb,
             $finalImage,
+            $maxOccupantsDb,
             $roomId,
             $ownerId
         );
@@ -206,6 +235,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($newImagePath !== null && file_exists($destPath)) {
             unlink($destPath);
         }
+    }
+}
+
+$selectedRoomType = $old['room_type'];
+$legacyRoomType = null;
+
+if (!in_array($selectedRoomType, $roomTypes, true)) {
+    if (isset($legacyRoomTypeMap[$selectedRoomType])) {
+        $selectedRoomType = $legacyRoomTypeMap[$selectedRoomType];
+    } else {
+        $legacyRoomType = $old['room_type'];
+        $selectedRoomType = '';
     }
 }
 ?>
@@ -251,28 +292,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form class="add-room-form" action="" method="POST" enctype="multipart/form-data" novalidate>
 
+                    <h3 class="add-room-section-heading">Property Information</h3>
 
-                    <!-- Room Title -->
+                    <!-- Title & Location (side by side) -->
 
-                    <div class="form-group">
+                    <div class="form-row">
 
-                        <label for="title">Room Title</label>
+                        <div class="form-group">
 
-                        <input
-                            type="text"
-                            id="title"
-                            name="title"
-                            placeholder="e.g. Single Room in Balaju"
-                            value="<?= htmlspecialchars($old['title']) ?>"
-                            required
-                        >
+                            <label for="title">Property Title</label>
 
-                        <?php if ($errors['title'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['title']) ?></span>
-                        <?php endif; ?>
+                            <input
+                                type="text"
+                                id="title"
+                                name="title"
+                                placeholder="e.g. Cozy Single Room in Balaju"
+                                value="<?= htmlspecialchars($old['title']) ?>"
+                                required
+                            >
+
+                            <?php if ($errors['title'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['title']) ?></span>
+                            <?php endif; ?>
+
+                        </div>
+
+                        <div class="form-group">
+
+                            <label for="location">Location</label>
+
+                            <input
+                                type="text"
+                                id="location"
+                                name="location"
+                                placeholder="e.g. Balaju, Kathmandu"
+                                value="<?= htmlspecialchars($old['location']) ?>"
+                                required
+                            >
+
+                            <?php if ($errors['location'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['location']) ?></span>
+                            <?php endif; ?>
+
+                        </div>
 
                     </div>
-
 
                     <!-- Description -->
 
@@ -284,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             id="description"
                             name="description"
                             placeholder="Describe the room, amenities, surroundings..."
-                            rows="5"
+                            rows="4"
                             required
                         ><?= htmlspecialchars($old['description']) ?></textarea>
 
@@ -294,32 +358,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     </div>
 
+                    <h3 class="add-room-section-heading">Property Details</h3>
 
-                    <!-- Location -->
-
-                    <div class="form-group">
-
-                        <label for="location">Location</label>
-
-                        <input
-                            type="text"
-                            id="location"
-                            name="location"
-                            placeholder="e.g. Balaju, Kathmandu"
-                            value="<?= htmlspecialchars($old['location']) ?>"
-                            required
-                        >
-
-                        <?php if ($errors['location'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['location']) ?></span>
-                        <?php endif; ?>
-
-                    </div>
-
-
-                    <!-- Price & Room Type (side by side) -->
+                    <!-- Room Type & Price (side by side) -->
 
                     <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label for="room_type">Room Type</label>
+
+                            <?php if ($legacyRoomType !== null): ?>
+                                <select name="room_type" id="room_type" required>
+                                    <option value="" disabled selected>Current: <?= htmlspecialchars($legacyRoomType) ?></option>
+                                    <?php foreach ($roomTypes as $type): ?>
+                                        <option value="<?= htmlspecialchars($type) ?>">
+                                            <?= htmlspecialchars($type) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <span class="field-hint">Your current Room Type is not in the standard list. Choose a valid option below to update it.</span>
+                            <?php else: ?>
+                                <select name="room_type" id="room_type" required>
+                                    <option value="" <?= $selectedRoomType === '' ? 'selected' : '' ?> disabled>Select Room Type</option>
+                                    <?php foreach ($roomTypes as $type): ?>
+                                        <option value="<?= htmlspecialchars($type) ?>" <?= $selectedRoomType === $type ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($type) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php endif; ?>
+
+                            <?php if ($errors['room_type'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
+                            <?php endif; ?>
+
+                        </div>
 
                         <div class="form-group">
 
@@ -342,27 +416,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         </div>
 
-                        <div class="form-group">
+                    </div>
 
-                            <label for="room_type">Room Type</label>
+                    <!-- Maximum Occupants -->
 
-                            <input
-                                type="text"
-                                id="room_type"
-                                name="room_type"
-                                placeholder="e.g. Single, Double, Studio"
-                                value="<?= htmlspecialchars($old['room_type']) ?>"
-                                required
-                            >
+                    <div class="form-group">
 
-                            <?php if ($errors['room_type'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
-                            <?php endif; ?>
+                        <label for="max_occupants">Maximum Occupants</label>
 
-                        </div>
+                        <input
+                            type="number"
+                            id="max_occupants"
+                            name="max_occupants"
+                            placeholder="e.g. 5"
+                            min="1"
+                            max="20"
+                            value="<?= htmlspecialchars($old['max_occupants']) ?>"
+                            required
+                        >
+
+                        <span class="field-hint">Maximum number of people allowed to live here.</span>
+
+                        <?php if ($errors['max_occupants'] !== ''): ?>
+                            <span class="error"><?= htmlspecialchars($errors['max_occupants']) ?></span>
+                        <?php endif; ?>
 
                     </div>
 
+                    <h3 class="add-room-section-heading">Facilities</h3>
 
                     <!-- Facilities -->
 
@@ -383,6 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     </div>
 
+                    <h3 class="add-room-section-heading">Property Image</h3>
 
                     <!-- Room Image -->
 
@@ -415,7 +497,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
 
                     </div>
-
 
                     <!-- Submit -->
 

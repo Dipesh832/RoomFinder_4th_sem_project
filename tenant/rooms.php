@@ -20,6 +20,7 @@ $stmt = $conn->prepare("
         facilities,
         image,
         status,
+        max_occupants,
         created_at
     FROM rooms
     WHERE status = 'available'
@@ -167,6 +168,10 @@ if ($tenantId > 0) {
 
                                 <p class="room-card-type">
                                     <?= htmlspecialchars($room['room_type']) ?>
+                                </p>
+
+                                <p class="room-card-max-occupants">
+                                    Maximum occupants: <?= (int) $room['max_occupants'] ?>
                                 </p>
 
                                 <?php

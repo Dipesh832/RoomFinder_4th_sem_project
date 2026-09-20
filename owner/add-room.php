@@ -12,22 +12,35 @@ if (!is_dir($uploadDir)) {
 }
 
 $errors = [
-    'title'       => '',
-    'description' => '',
-    'location'    => '',
-    'price'       => '',
-    'room_type'   => '',
-    'facilities'  => '',
-    'image'       => '',
+    'title'         => '',
+    'description'   => '',
+    'location'      => '',
+    'price'         => '',
+    'room_type'     => '',
+    'max_occupants' => '',
+    'facilities'    => '',
+    'image'         => '',
 ];
 
 $old = [
-    'title'       => '',
-    'description' => '',
-    'location'    => '',
-    'price'       => '',
-    'room_type'   => '',
-    'facilities'  => '',
+    'title'         => '',
+    'description'   => '',
+    'location'      => '',
+    'price'         => '',
+    'room_type'     => '',
+    'max_occupants' => '',
+    'facilities'    => '',
+];
+
+$roomTypes = [
+    'Single Room',
+    'Double Room',
+    'Shared Room',
+    '1RK',
+    '1BHK',
+    '2BHK',
+    '3BHK',
+    '2BK',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,14 +50,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $location    = trim($_POST['location'] ?? '');
     $price       = trim($_POST['price'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
+    $maxOccupants = trim($_POST['max_occupants'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
 
-    $old['title']       = $title;
-    $old['description'] = $description;
-    $old['location']    = $location;
-    $old['price']       = $price;
-    $old['room_type']   = $roomType;
-    $old['facilities']  = $facilities;
+    $old['title']         = $title;
+    $old['description']   = $description;
+    $old['location']      = $location;
+    $old['price']         = $price;
+    $old['room_type']     = $roomType;
+    $old['max_occupants'] = $maxOccupants;
+    $old['facilities']    = $facilities;
 
     if (empty($title)) {
         $errors['title'] = "Room title is required";
@@ -66,8 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['price'] = "Price must be a number greater than 0";
     }
 
-    if (empty($roomType)) {
-        $errors['room_type'] = "Room type is required";
+    if (!in_array($roomType, $roomTypes, true)) {
+        $errors['room_type'] = "Please choose a valid room type.";
+    }
+
+    if ($maxOccupants === '' || filter_var($maxOccupants, FILTER_VALIDATE_INT) === false) {
+        $errors['max_occupants'] = "Maximum occupants is required";
+    } elseif ((int) $maxOccupants < 1 || (int) $maxOccupants > 20) {
+        $errors['max_occupants'] = "Maximum occupants must be between 1 and 20";
     }
 
     $uploadedFilePath = null;
@@ -128,8 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!array_filter($errors)) {
 
         $sql = "INSERT INTO rooms
-                (owner_id, title, description, location, price, room_type, facilities, image, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (owner_id, title, description, location, price, room_type, max_occupants, facilities, image, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = mysqli_prepare($conn, $sql);
 
@@ -138,16 +159,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : null;
         $imageDb       = $uploadedFilePath;
         $status        = 'available';
+        $maxOccupantsDb = (int) $maxOccupants;
 
         mysqli_stmt_bind_param(
             $stmt,
-            "isssdssss",
+            "isssdsisss",
             $ownerId,
             $title,
             $description,
             $location,
             $price,
             $roomType,
+            $maxOccupantsDb,
             $facilitiesDb,
             $imageDb,
             $status
@@ -197,15 +220,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="add-room-container">
 
-                <div class="add-room-header">
-
-                    <h1 class="add-room-heading">Add New Room</h1>
-
-                    <p class="add-room-subtitle">
-                        List a new room on RoomFinder.
-                    </p>
-
-                </div>
+                <a href="rooms.php" class="add-room-back">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    Back to My Rooms
+                </a>
 
 
                 <?= messages() ?>
@@ -213,170 +234,216 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form class="add-room-form" action="" method="POST" enctype="multipart/form-data" novalidate>
 
+                    <h1 class="add-room-form-title">Add Property</h1>
 
-                    <!-- Room Title -->
+                    <p class="add-room-form-subtitle">
+                        Give tenants all the details they need to decide if this is the right room.
+                    </p>
 
-                    <div class="form-group">
+                    <!-- ========== Property Information ========== -->
 
-                        <label for="title">Room Title</label>
+                    <div class="add-room-section-box">
 
-                        <input
-                            type="text"
-                            id="title"
-                            name="title"
-                            placeholder="e.g. Single Room in Balaju"
-                            value="<?= htmlspecialchars($old['title']) ?>"
-                            required
-                        >
+                        <h3 class="add-room-section-box-title">Property Information</h3>
 
-                        <?php if ($errors['title'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['title']) ?></span>
-                        <?php endif; ?>
+                        <div class="form-row">
 
-                    </div>
+                            <div class="form-group">
 
+                                <label for="title">Property Title</label>
 
-                    <!-- Description -->
+                                <input
+                                    type="text"
+                                    id="title"
+                                    name="title"
+                                    placeholder="e.g. Cozy Single Room in Balaju"
+                                    value="<?= htmlspecialchars($old['title']) ?>"
+                                    required
+                                >
 
-                    <div class="form-group">
+                                <?php if ($errors['title'] !== ''): ?>
+                                    <span class="error"><?= htmlspecialchars($errors['title']) ?></span>
+                                <?php endif; ?>
 
-                        <label for="description">Description</label>
+                            </div>
 
-                        <textarea
-                            id="description"
-                            name="description"
-                            placeholder="Describe the room, amenities, surroundings..."
-                            rows="5"
-                            required
-                        ><?= htmlspecialchars($old['description']) ?></textarea>
+                            <div class="form-group">
 
-                        <?php if ($errors['description'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['description']) ?></span>
-                        <?php endif; ?>
+                                <label for="location">Location</label>
 
-                    </div>
+                                <input
+                                    type="text"
+                                    id="location"
+                                    name="location"
+                                    placeholder="e.g. Balaju, Kathmandu"
+                                    value="<?= htmlspecialchars($old['location']) ?>"
+                                    required
+                                >
 
+                                <?php if ($errors['location'] !== ''): ?>
+                                    <span class="error"><?= htmlspecialchars($errors['location']) ?></span>
+                                <?php endif; ?>
 
-                    <!-- Location -->
+                            </div>
 
-                    <div class="form-group">
-
-                        <label for="location">Location</label>
-
-                        <input
-                            type="text"
-                            id="location"
-                            name="location"
-                            placeholder="e.g. Balaju, Kathmandu"
-                            value="<?= htmlspecialchars($old['location']) ?>"
-                            required
-                        >
-
-                        <?php if ($errors['location'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['location']) ?></span>
-                        <?php endif; ?>
-
-                    </div>
-
-
-                    <!-- Price & Room Type (side by side) -->
-
-                    <div class="form-row">
+                        </div>
 
                         <div class="form-group">
 
-                            <label for="price">Price (Rs. / month)</label>
+                            <label for="description">Description</label>
+
+                            <textarea
+                                id="description"
+                                name="description"
+                                placeholder="Describe the room, amenities, surroundings..."
+                                rows="4"
+                                required
+                            ><?= htmlspecialchars($old['description']) ?></textarea>
+
+                            <?php if ($errors['description'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['description']) ?></span>
+                            <?php endif; ?>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ========== Property Details ========== -->
+
+                    <div class="add-room-section-box">
+
+                        <h3 class="add-room-section-box-title">Property Details</h3>
+
+                        <div class="form-row">
+
+                            <div class="form-group">
+
+                                <label for="room_type">Room Type</label>
+
+                                <select name="room_type" id="room_type" required>
+                                    <option value="" <?= $old['room_type'] === '' ? 'selected' : '' ?> disabled>Select Room Type</option>
+                                    <?php foreach ($roomTypes as $type): ?>
+                                        <option value="<?= htmlspecialchars($type) ?>" <?= $old['room_type'] === $type ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($type) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <?php if ($errors['room_type'] !== ''): ?>
+                                    <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
+                                <?php endif; ?>
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label for="price">Price (Rs. / month)</label>
+
+                                <input
+                                    type="number"
+                                    id="price"
+                                    name="price"
+                                    placeholder="e.g. 8000"
+                                    min="0.01"
+                                    step="0.01"
+                                    value="<?= htmlspecialchars($old['price']) ?>"
+                                    required
+                                >
+
+                                <?php if ($errors['price'] !== ''): ?>
+                                    <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
+                                <?php endif; ?>
+
+                            </div>
+
+                        </div>
+
+                        <div class="form-group">
+
+                            <label for="max_occupants">Maximum Occupants</label>
 
                             <input
                                 type="number"
-                                id="price"
-                                name="price"
-                                placeholder="e.g. 8000"
-                                min="0.01"
-                                step="0.01"
-                                value="<?= htmlspecialchars($old['price']) ?>"
+                                id="max_occupants"
+                                name="max_occupants"
+                                placeholder="e.g. 5"
+                                min="1"
+                                max="20"
+                                value="<?= htmlspecialchars($old['max_occupants']) ?>"
                                 required
                             >
 
-                            <?php if ($errors['price'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
+                            <span class="field-hint">Maximum number of people allowed to live here.</span>
+
+                            <?php if ($errors['max_occupants'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['max_occupants']) ?></span>
                             <?php endif; ?>
 
                         </div>
+
+                    </div>
+
+                    <!-- ========== Facilities ========== -->
+
+                    <div class="add-room-section-box">
+
+                        <h3 class="add-room-section-box-title">Facilities</h3>
 
                         <div class="form-group">
 
-                            <label for="room_type">Room Type</label>
+                            <label for="facilities">Facilities <span class="optional">(optional)</span></label>
 
-                            <input
-                                type="text"
-                                id="room_type"
-                                name="room_type"
-                                placeholder="e.g. Single, Double, Studio"
-                                value="<?= htmlspecialchars($old['room_type']) ?>"
-                                required
-                            >
+                            <textarea
+                                id="facilities"
+                                name="facilities"
+                                placeholder="e.g. WiFi, Attached Bathroom, Parking"
+                                rows="3"
+                            ><?= htmlspecialchars($old['facilities']) ?></textarea>
 
-                            <?php if ($errors['room_type'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
+                            <?php if ($errors['facilities'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['facilities']) ?></span>
                             <?php endif; ?>
 
                         </div>
 
                     </div>
 
+                    <!-- ========== Property Image ========== -->
 
-                    <!-- Facilities -->
+                    <div class="add-room-section-box">
 
-                    <div class="form-group">
+                        <h3 class="add-room-section-box-title">Property Image</h3>
 
-                        <label for="facilities">Facilities <span class="optional">(optional)</span></label>
+                        <div class="form-group">
 
-                        <textarea
-                            id="facilities"
-                            name="facilities"
-                            placeholder="e.g. WiFi, Attached Bathroom, Parking"
-                            rows="3"
-                        ><?= htmlspecialchars($old['facilities']) ?></textarea>
+                            <label for="image">Room Image <span class="optional">(optional)</span></label>
 
-                        <?php if ($errors['facilities'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['facilities']) ?></span>
-                        <?php endif; ?>
+                            <input
+                                type="file"
+                                id="image"
+                                name="image"
+                                accept="image/jpeg,image/png,image/webp"
+                            >
 
-                    </div>
+                            <span class="field-hint">JPG, PNG, or WEBP. Max 2 MB.</span>
 
+                            <?php if ($errors['image'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['image']) ?></span>
+                            <?php endif; ?>
 
-                    <!-- Room Image -->
-
-                    <div class="form-group">
-
-                        <label for="image">Room Image <span class="optional">(optional)</span></label>
-
-                        <input
-                            type="file"
-                            id="image"
-                            name="image"
-                            accept="image/jpeg,image/png,image/webp"
-                        >
-
-                        <span class="field-hint">JPG, PNG, or WEBP. Max 2 MB.</span>
-
-                        <?php if ($errors['image'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['image']) ?></span>
-                        <?php endif; ?>
+                        </div>
 
                     </div>
 
+                    <!-- ========== Actions ========== -->
 
-                    <!-- Submit -->
+                    <div class="add-room-actions">
 
-                    <div class="form-actions">
-
-                        <a href="rooms.php" class="btn-cancel">
+                        <a href="rooms.php" class="add-room-cancel">
                             Cancel
                         </a>
 
-                        <button type="submit" class="add-room-btn">
+                        <button type="submit" class="add-room-submit">
                             Add Room
                         </button>
 

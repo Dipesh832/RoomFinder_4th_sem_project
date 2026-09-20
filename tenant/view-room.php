@@ -22,6 +22,7 @@ $stmt = $conn->prepare("
         facilities,
         image,
         status,
+        max_occupants,
         created_at
     FROM rooms
     WHERE id = ?
@@ -70,6 +71,8 @@ $stmt->close();
  * entered data in the session. Restore it so the tenant does not have to
  * retype everything, then clear it.
  */
+$roomMaxOccupants = max(1, (int) $room['max_occupants']);
+
 $formNumber = 1;
 $formRelationship = '';
 $formRelationshipDetail = '';
@@ -85,7 +88,7 @@ if (isset($_SESSION['booking_form_data']) && is_array($_SESSION['booking_form_da
     $formRelationshipDetail = trim((string) ($formData['relationship_detail'] ?? ''));
 
     if (isset($formData['number_of_people']) && (int) $formData['number_of_people'] > 0) {
-        $formNumber = min((int) $formData['number_of_people'], 20);
+        $formNumber = min((int) $formData['number_of_people'], $roomMaxOccupants);
     }
 
     if (isset($formData['members']) && is_array($formData['members'])) {
@@ -139,6 +142,8 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 <h1 class="view-room-title"><?= htmlspecialchars($room['title']) ?></h1>
             </div>
 
+            <?= messages() ?>
+
             <div class="view-room-grid">
 
                 <div class="view-room-main">
@@ -179,6 +184,11 @@ $pagePrice   = number_format((float) $room['price'], 2);
                         <div class="view-room-info-row">
                             <span class="view-room-info-label">Room Type</span>
                             <span class="view-room-info-value"><?= htmlspecialchars($room['room_type']) ?></span>
+                        </div>
+
+                        <div class="view-room-info-row">
+                            <span class="view-room-info-label">Maximum Occupants</span>
+                            <span class="view-room-info-value"><?= $roomMaxOccupants ?></span>
                         </div>
 
                         <?php if (!empty($room['description'])): ?>
@@ -280,7 +290,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
 
                             <div class="booking-form-group">
                                 <label for="occupant-count">Number of people</label>
-                                <input type="number" name="number_of_people" id="occupant-count" min="1" max="20" value="<?= (int) $formNumber ?>" required>
+                                <input type="number" name="number_of_people" id="occupant-count" min="1" max="<?= $roomMaxOccupants ?>" value="<?= (int) $formNumber ?>" required>
                             </div>
 
                         </div>
@@ -308,7 +318,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
         <?=
         json_encode([
             'number'  => (int) $formNumber,
-            'max'     => 20,
+            'max'     => $roomMaxOccupants,
             'members' => $formMembers,
         ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         ?>
@@ -332,7 +342,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             }
 
             var configEl = document.getElementById('booking-form-config');
-            var config = configEl ? JSON.parse(configEl.textContent) : { number: 1, max: 20, members: [] };
+            var config = configEl ? JSON.parse(configEl.textContent) : { number: 1, max: <?= $roomMaxOccupants ?>, members: [] };
 
             var countInput = document.getElementById('occupant-count');
             var listEl = document.getElementById('occupant-list');
@@ -341,7 +351,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             }
 
             var GENDERS = ['Male', 'Female', 'Other'];
-            var MAX = config.max || 20;
+            var MAX = config.max || <?= $roomMaxOccupants ?>;
 
             function esc(value) {
                 return String(value)

@@ -1714,7 +1714,7 @@
 
 .owner-add-room-page {
   min-height: calc(100vh - 76px);
-  background: #ecfdf5;
+  background: #f8fafc;
 }
 
 .add-room-section {
@@ -1753,19 +1753,178 @@
 }
 
 /* ========================================
+   ADD ROOM - BACK LINK
+======================================== */
+
+.add-room-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #059669;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+
+  margin-bottom: 14px;
+
+  transition: color 0.2s ease;
+}
+
+.add-room-back:hover {
+  color: #047857;
+}
+
+.add-room-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ========================================
+   ADD ROOM - SECTION HEADINGS
+======================================== */
+
+.add-room-form .add-room-section-heading {
+  margin: 0 0 18px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.add-room-form .add-room-section-heading:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* ========================================
    ADD ROOM FORM
 ========================================= */
 
 .add-room-form {
   background: #ffffff;
 
-  border: 1px solid #dbe3ed;
-  border-radius: 18px;
-  padding: 36px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px;
+}
 
-  box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.03),
-    0 8px 20px rgba(15, 23, 42, 0.04);
+/* ========================================
+   ADD ROOM - FORM TITLE
+======================================== */
+
+.add-room-form-title {
+  margin: 0 0 4px;
+
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.add-room-form-subtitle {
+  margin: 0 0 22px;
+
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   ADD ROOM - SECTION BOXES
+======================================== */
+
+.add-room-form .add-room-section-box {
+  background: #f8fafc;
+  border: 1px solid #e9eef5;
+  border-radius: 12px;
+
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.add-room-form .add-room-section-box-title {
+  margin: 0 0 16px;
+
+  font-size: 15px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* ========================================
+   ADD ROOM - ACTIONS
+======================================== */
+
+.add-room-form .add-room-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+
+  margin-top: 8px;
+}
+
+.add-room-form .add-room-submit {
+  width: 100%;
+  max-width: 280px;
+
+  padding: 11px 16px;
+
+  border: 1px solid #10b981;
+  border-radius: 8px;
+
+  background: #10b981;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.add-room-form .add-room-submit:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.add-room-form .add-room-cancel {
+  padding: 11px 16px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  background: #f8fafc;
+  color: #475569;
+
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.add-room-form .add-room-cancel:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 
 /* ========================================
@@ -1775,7 +1934,7 @@
 .add-room-form .form-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .add-room-form label {
@@ -1829,11 +1988,11 @@
 }
 
 .add-room-form input[type="file"] {
-  padding: 10px 12px;
+  padding: 12px 16px;
   background: #f8fafc;
   border: 1px solid #dbe3ed;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-family: inherit;
   cursor: pointer;
 }
@@ -1860,7 +2019,7 @@
 .add-room-form .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 18px;
 }
 
 /* ========================================
@@ -1925,7 +2084,7 @@
    ADD ROOM FORM RESPONSIVE
 ========================================= */
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .add-room-section {
     padding: 35px 16px 55px;
   }
@@ -1945,6 +2104,21 @@
   .add-room-form .form-row {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .add-room-form .add-room-section-box {
+    padding: 16px;
+  }
+
+  .add-room-form .add-room-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-room-form .add-room-submit,
+  .add-room-form .add-room-cancel {
+    width: 100%;
+    max-width: none;
   }
 }
 
