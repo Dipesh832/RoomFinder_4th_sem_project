@@ -63,6 +63,12 @@ $dataStmt->execute();
 $users = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dataStmt->close();
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
+    $_SESSION['error'] = "Session expired. Please try again.";
+    header("Location: " . base_url('admin/users'));
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_user') {
     $deleteUserId = (int) ($_POST['user_id'] ?? 0);
 
@@ -113,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($createPhone === '') {
         $createErrors[] = 'Phone is required.';
+    } elseif (!preg_match('/^[0-9]{10}$/', $createPhone)) {
+        $createErrors[] = 'Phone must be exactly 10 digits.';
     }
 
     if ($createPassword === '') {
@@ -184,8 +192,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $emailCheck->close();
     }
 
+    /*
+     * A legacy phone value that the admin is not changing is allowed to stay
+     * as-is even if it does not match the 10-digit format. If the phone is
+     * changed it must be exactly 10 digits, matching registration.
+     */
+    $existingUserPhone = null;
+    if ($editUserId > 0) {
+        $existStmt = $conn->prepare("SELECT phone FROM users WHERE id = ?");
+        $existStmt->bind_param("i", $editUserId);
+        $existStmt->execute();
+        $existRow = $existStmt->get_result()->fetch_assoc();
+        $existStmt->close();
+        $existingUserPhone = $existRow['phone'] ?? null;
+    }
+
     if ($editPhone === '') {
         $editErrors[] = 'Phone is required.';
+    } elseif ($editPhone !== $existingUserPhone && !preg_match('/^[0-9]{10}$/', $editPhone)) {
+        $editErrors[] = 'Phone must be exactly 10 digits when changed.';
     }
 
     if ($editPassword !== '' && strlen($editPassword) < 8) {
@@ -464,6 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
             <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>">
                 <input type="hidden" name="action" value="create_user">
+                <?= csrf_field() ?>
                 <div class="admin-modal-body">
                     <div class="admin-form-group">
                         <label class="admin-form-label">Name <span class="required">*</span></label>
@@ -513,6 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>" id="edit-user-form">
                 <input type="hidden" name="action" value="update_user">
                 <input type="hidden" name="user_id" id="edit-user-id">
+                <?= csrf_field() ?>
                 <div class="admin-modal-body">
                     <div class="admin-form-group">
                         <label class="admin-form-label">Name <span class="required">*</span></label>
@@ -552,6 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <form method="POST" action="<?= htmlspecialchars(base_url('admin/users')) ?>" id="delete-user-form" style="display:none;">
         <input type="hidden" name="action" value="delete_user">
         <input type="hidden" name="user_id" id="delete-user-id">
+        <?= csrf_field() ?>
     </form>
 
     <script>

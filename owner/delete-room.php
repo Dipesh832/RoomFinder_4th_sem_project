@@ -9,6 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('owner/rooms');
 }
 
+if (!verify_csrf()) {
+    $_SESSION['error'] = "Session expired. Please try again.";
+    redirect('owner/rooms');
+}
+
 $roomId = isset($_POST['room_id']) ? (int) $_POST['room_id'] : 0;
 
 if ($roomId <= 0) {

@@ -13,6 +13,11 @@ $old = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    if (!verify_csrf()) {
+        $_SESSION['error'] = "Session expired. Please try again.";
+        redirect('auth/forgot-password');
+    }
+
     $email = trim($_POST['email'] ?? '');
 
     $old['email'] = $email;
@@ -160,6 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?= messages() ?>
 
                     <form class="auth-form" action="" method="POST">
+
+                        <?= csrf_field() ?>
 
                         <div class="form-group">
 

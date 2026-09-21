@@ -188,6 +188,7 @@ $stmt->close();
                                     </a>
                                     <form action="delete-room.php" method="POST" class="room-card-delete-form" onsubmit="return confirm('Are you sure you want to delete this room?');">
                                         <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+                                        <?= csrf_field() ?>
                                         <button type="submit" class="room-card-btn room-card-btn-delete">
                                             Delete
                                         </button>

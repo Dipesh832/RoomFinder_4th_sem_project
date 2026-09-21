@@ -255,12 +255,14 @@ if (!empty($bookings)) {
                                             <form method="POST" action="booking-action.php">
                                                 <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
                                                 <input type="hidden" name="action" value="approve">
+                                                <?= csrf_field() ?>
                                                 <button type="submit" class="booking-btn booking-btn-approve">Approve</button>
                                             </form>
 
                                             <form method="POST" action="booking-action.php">
                                                 <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
                                                 <input type="hidden" name="action" value="reject">
+                                                <?= csrf_field() ?>
                                                 <button type="submit" class="booking-btn booking-btn-reject">Reject</button>
                                             </form>
 

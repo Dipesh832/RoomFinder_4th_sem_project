@@ -156,6 +156,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                         </a>
                         <form action="delete-room.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this room?');">
                             <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+                            <?= csrf_field() ?>
                             <button type="submit" class="view-room-action-btn view-room-action-delete">
                                 Delete Room
                             </button>

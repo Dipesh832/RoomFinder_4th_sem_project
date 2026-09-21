@@ -35,6 +35,11 @@ if ($user && $user['reset_expires_at']) {
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    if (!verify_csrf()) {
+        $_SESSION['error'] = "Session expired. Please try again.";
+        redirect('auth/verify-otp');
+    }
+
     $otp = trim($_POST['otp'] ?? '');
 
     if (empty($otp)) {
@@ -162,6 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <form class="auth-form" action="" method="POST">
+
+                        <?= csrf_field() ?>
 
                         <div class="form-group">
 

@@ -11,6 +11,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect("tenant/rooms");
 }
 
+if (!verify_csrf()) {
+    $_SESSION['error'] = "Session expired. Please try again.";
+    redirect("tenant/rooms");
+}
+
 $tenantId = $_SESSION['user']['id'];
 
 /*

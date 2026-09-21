@@ -668,11 +668,13 @@ $stmt->close();
                                         <form method="POST" action="booking-action.php">
                                             <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
                                             <input type="hidden" name="action" value="reject">
+                                            <?= csrf_field() ?>
                                             <button type="submit" class="db-btn-decline">Decline</button>
                                         </form>
                                         <form method="POST" action="booking-action.php">
                                             <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
                                             <input type="hidden" name="action" value="approve">
+                                            <?= csrf_field() ?>
                                             <button type="submit" class="db-btn-accept">Accept</button>
                                         </form>
                                     </div>

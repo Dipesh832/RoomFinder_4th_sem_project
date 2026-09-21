@@ -45,6 +45,11 @@ $roomTypes = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    if (!verify_csrf()) {
+        $_SESSION['error'] = "Session expired. Please try again.";
+        redirect('owner/add-room');
+    }
+
     $title       = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $location    = trim($_POST['location'] ?? '');
@@ -66,21 +71,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($title) > 150) {
         $errors['title'] = "Title must be 150 characters or less";
     } elseif (!is_human_readable_room_title($title)) {
-        $errors['title'] = "Room title must contain at least 3 letters and look like a readable title, not just numbers or codes";
+        $errors['title'] = "Please enter a valid room title with at least 3 letters.";
     }
 
     if (empty($description)) {
         $errors['description'] = "Description is required";
+    } elseif (strlen($description) > 10000) {
+        $errors['description'] = "Description must be 10000 characters or less";
     }
 
     if (empty($location)) {
         $errors['location'] = "Location is required";
+    } elseif (strlen($location) > 255) {
+        $errors['location'] = "Location must be 255 characters or less";
+    } elseif (!is_valid_room_location($location)) {
+        $errors['location'] = "Please enter a valid location with at least 3 letters.";
     }
 
     if (empty($price)) {
         $errors['price'] = "Price is required";
     } elseif (!is_numeric($price) || (float) $price <= 0) {
         $errors['price'] = "Price must be a number greater than 0";
+    } elseif ((float) $price > 10000000) {
+        $errors['price'] = "Price cannot be more than 10000000";
     }
 
     if (!in_array($roomType, $roomTypes, true)) {
@@ -91,6 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['max_occupants'] = "Maximum occupants is required";
     } elseif ((int) $maxOccupants < 1 || (int) $maxOccupants > 20) {
         $errors['max_occupants'] = "Maximum occupants must be between 1 and 20";
+    }
+
+    if (strlen($facilities) > 5000) {
+        $errors['facilities'] = "Facilities must be 5000 characters or less";
     }
 
     $uploadedFilePath = null;
@@ -235,6 +252,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                 <form class="add-room-form" action="" method="POST" enctype="multipart/form-data" novalidate>
+
+                    <?= csrf_field() ?>
 
                     <h1 class="add-room-form-title">Add Property</h1>
 

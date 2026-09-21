@@ -7,6 +7,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect("owner/bookings");
 }
 
+if (!verify_csrf()) {
+    $_SESSION['error'] = "Session expired. Please try again.";
+    redirect("owner/bookings");
+}
+
 $ownerId = $_SESSION['user']['id'];
 
 $bookingId = trim($_POST['booking_id'] ?? '');

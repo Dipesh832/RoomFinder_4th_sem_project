@@ -17,6 +17,17 @@ if ($statusFilter !== '' && !in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = '';
 }
 
+$roomTypeOptions = [
+    'Single Room',
+    'Double Room',
+    'Shared Room',
+    '1RK',
+    '1BHK',
+    '2BHK',
+    '3BHK',
+    '2BK',
+];
+
 $typeStmt = $conn->query("SELECT DISTINCT room_type FROM rooms WHERE room_type != '' ORDER BY room_type ASC");
 $roomTypes = [];
 if ($typeStmt) {
@@ -101,6 +112,12 @@ $dataStmt->bind_param($dataTypes, ...$dataParams);
 $dataStmt->execute();
 $rooms = $dataStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $dataStmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
+    $_SESSION['error'] = "Session expired. Please try again.";
+    header("Location: " . base_url('admin/rooms'));
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_room') {
     $deleteRoomId = (int) ($_POST['room_id'] ?? 0);
@@ -218,24 +235,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $addErrors[] = 'Title is required.';
     } elseif (strlen($addTitle) > 150) {
         $addErrors[] = 'Title must be 150 characters or fewer.';
+    } elseif (!is_human_readable_room_title($addTitle)) {
+        $addErrors[] = 'Please enter a valid room title with at least 3 letters.';
     }
 
     if ($addDesc === '') {
         $addErrors[] = 'Description is required.';
+    } elseif (strlen($addDesc) > 10000) {
+        $addErrors[] = 'Description must be 10000 characters or fewer.';
     }
 
     if ($addLocation === '') {
         $addErrors[] = 'Location is required.';
+    } elseif (strlen($addLocation) > 255) {
+        $addErrors[] = 'Location must be 255 characters or fewer.';
+    } elseif (!is_valid_room_location($addLocation)) {
+        $addErrors[] = 'Please enter a valid location with at least 3 letters.';
     }
 
     if ($addPrice === '') {
         $addErrors[] = 'Price is required.';
     } elseif (!is_numeric($addPrice) || (float) $addPrice <= 0) {
         $addErrors[] = 'Price must be a number greater than 0.';
+    } elseif ((float) $addPrice > 10000000) {
+        $addErrors[] = 'Price cannot be more than 10000000.';
     }
 
-    if ($addRoomType === '') {
-        $addErrors[] = 'Room type is required.';
+    if (!in_array($addRoomType, $roomTypeOptions, true)) {
+        $addErrors[] = 'Please choose a valid room type.';
+    }
+
+    if (strlen($addFacilities) > 5000) {
+        $addErrors[] = 'Facilities must be 5000 characters or fewer.';
     }
 
     if (!in_array($addStatus, $allowedStatuses, true)) {
@@ -326,24 +357,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $editErrors[] = 'Title is required.';
     } elseif (strlen($editTitle) > 150) {
         $editErrors[] = 'Title must be 150 characters or fewer.';
+    } elseif (!is_human_readable_room_title($editTitle)) {
+        $editErrors[] = 'Please enter a valid room title with at least 3 letters.';
     }
 
     if ($editDesc === '') {
         $editErrors[] = 'Description is required.';
+    } elseif (strlen($editDesc) > 10000) {
+        $editErrors[] = 'Description must be 10000 characters or fewer.';
     }
 
     if ($editLocation === '') {
         $editErrors[] = 'Location is required.';
+    } elseif (strlen($editLocation) > 255) {
+        $editErrors[] = 'Location must be 255 characters or fewer.';
+    } elseif (!is_valid_room_location($editLocation)) {
+        $editErrors[] = 'Please enter a valid location with at least 3 letters.';
     }
 
     if ($editPrice === '') {
         $editErrors[] = 'Price is required.';
     } elseif (!is_numeric($editPrice) || (float) $editPrice <= 0) {
         $editErrors[] = 'Price must be a number greater than 0.';
+    } elseif ((float) $editPrice > 10000000) {
+        $editErrors[] = 'Price cannot be more than 10000000.';
+    }
+
+    /*
+     * Admin room types are restricted to the predefined list. A room that was
+     * created with an older free-text value may keep its existing value so it
+     * can be edited again without forcing a data change.
+     */
+    $existingRoomType = null;
+    if ($editRoomId > 0) {
+        $rtStmt = $conn->prepare("SELECT room_type FROM rooms WHERE id = ?");
+        $rtStmt->bind_param("i", $editRoomId);
+        $rtStmt->execute();
+        $rtRow = $rtStmt->get_result()->fetch_assoc();
+        $rtStmt->close();
+        $existingRoomType = $rtRow['room_type'] ?? null;
     }
 
     if ($editRoomType === '') {
         $editErrors[] = 'Room type is required.';
+    } elseif (!in_array($editRoomType, $roomTypeOptions, true) && $editRoomType !== $existingRoomType) {
+        $editErrors[] = 'Please choose a valid room type.';
+    }
+
+    if (strlen($editFacilities) > 5000) {
+        $editErrors[] = 'Facilities must be 5000 characters or fewer.';
     }
 
     if (!in_array($editStatus, $allowedStatuses, true)) {
@@ -755,6 +817,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
             <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="add_room">
+                <?= csrf_field() ?>
                 <div class="admin-modal-body">
                     <div class="admin-form-group">
                         <label class="admin-form-label">Owner <span class="required">*</span></label>
@@ -784,7 +847,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
                         <div class="admin-form-group">
                             <label class="admin-form-label">Room Type <span class="required">*</span></label>
-                            <input type="text" name="room_type" class="admin-form-input" placeholder="e.g. Single, Double" maxlength="50" required value="<?= htmlspecialchars($oldAdd['room_type'] ?? '') ?>">
+                            <select name="room_type" class="admin-form-select" required>
+                                <option value="" <?= (($oldAdd['room_type'] ?? '') === '') ? 'selected' : '' ?> disabled>Select Room Type</option>
+                                <?php foreach ($roomTypeOptions as $type): ?>
+                                    <option value="<?= htmlspecialchars($type) ?>" <?= (($oldAdd['room_type'] ?? '') === $type) ? 'selected' : '' ?>><?= htmlspecialchars($type) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="admin-form-group">
@@ -828,6 +896,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" enctype="multipart/form-data" id="edit-room-form">
                 <input type="hidden" name="action" value="update_room">
                 <input type="hidden" name="room_id" id="edit-room-id">
+                <?= csrf_field() ?>
                 <div class="admin-modal-body">
                     <div class="admin-form-group">
                         <label class="admin-form-label">Owner <span class="required">*</span></label>
@@ -857,7 +926,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
                         <div class="admin-form-group">
                             <label class="admin-form-label">Room Type <span class="required">*</span></label>
-                            <input type="text" name="room_type" id="edit-room-type" class="admin-form-input" placeholder="e.g. Single, Double" maxlength="50" required>
+                            <select name="room_type" id="edit-room-type" class="admin-form-select" required>
+                                <option value="" selected disabled>Select Room Type</option>
+                                <?php foreach ($roomTypeOptions as $type): ?>
+                                    <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="admin-form-group">
@@ -895,6 +969,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <form method="POST" action="<?= htmlspecialchars(base_url('admin/rooms')) ?>" id="delete-room-form" style="display:none;">
         <input type="hidden" name="action" value="delete_room">
         <input type="hidden" name="room_id" id="delete-room-id">
+        <?= csrf_field() ?>
     </form>
 
     <script>
@@ -955,6 +1030,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // ─── Edit Room Modal ──────────────────────────────────
+    function setEditRoomType(value) {
+        var select = document.getElementById('edit-room-type');
+        var found = false;
+        for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === value) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            var opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = value;
+            select.appendChild(opt);
+        }
+        select.value = value;
+    }
+
     function openEditModal(room) {
         document.getElementById('edit-room-id').value = room.id;
         document.getElementById('edit-owner-id').value = room.owner_id;
@@ -962,7 +1055,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('edit-description').value = room.description || '';
         document.getElementById('edit-location').value = room.location;
         document.getElementById('edit-price').value = room.price;
-        document.getElementById('edit-room-type').value = room.room_type;
+        setEditRoomType(room.room_type);
         document.getElementById('edit-facilities').value = room.facilities || '';
         document.getElementById('edit-status').value = room.status;
 
@@ -1024,7 +1117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('edit-description').value = editData.description;
         document.getElementById('edit-location').value = editData.location;
         document.getElementById('edit-price').value = editData.price;
-        document.getElementById('edit-room-type').value = editData.room_type;
+        setEditRoomType(editData.room_type);
         document.getElementById('edit-facilities').value = editData.facilities;
         document.getElementById('edit-status').value = editData.status;
         var statusWarning = document.getElementById('edit-status-warning');

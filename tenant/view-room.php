@@ -221,6 +221,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                         <form action="bookmark-room.php" method="POST">
                             <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
                             <input type="hidden" name="redirect" value="view-room">
+                            <?= csrf_field() ?>
                             <button type="submit" class="view-room-action-btn <?= $isBookmarked ? 'view-room-action-bookmarked' : 'view-room-action-bookmark' ?>">
                                 <?= $isBookmarked ? '&#9829; Saved' : '&#9825; Save Room' ?>
                             </button>
@@ -258,6 +259,8 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     <p class="booking-form-subtitle">Tell the owner how many people will live in this room and who they are.</p>
 
                     <form action="<?= base_url('tenant/book-room') ?>" method="POST">
+
+                        <?= csrf_field() ?>
 
                         <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
 
