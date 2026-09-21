@@ -65,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['title'] = "Room title is required";
     } elseif (strlen($title) > 150) {
         $errors['title'] = "Title must be 150 characters or less";
+    } elseif (!is_human_readable_room_title($title)) {
+        $errors['title'] = "Room title must contain at least 3 letters and look like a readable title, not just numbers or codes";
     }
 
     if (empty($description)) {
