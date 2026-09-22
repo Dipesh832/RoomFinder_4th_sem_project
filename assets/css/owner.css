@@ -2012,6 +2012,12 @@
   cursor: pointer;
 }
 
+.add-room-form select:disabled {
+  color: #94a3b8;
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
 /* ========================================
    FORM ROW (2 columns)
 ========================================= */
@@ -2031,6 +2037,10 @@
   font-size: 13px;
   font-weight: 500;
   margin-top: 6px;
+}
+
+.add-room-form .error:empty {
+  display: none;
 }
 
 /* ========================================

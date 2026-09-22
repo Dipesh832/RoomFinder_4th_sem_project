@@ -16,6 +16,7 @@ $errors = [
     'description'   => '',
     'location'      => '',
     'price'         => '',
+    'category'      => '',
     'room_type'     => '',
     'max_occupants' => '',
     'facilities'    => '',
@@ -27,20 +28,17 @@ $old = [
     'description'   => '',
     'location'      => '',
     'price'         => '',
+    'category'      => '',
     'room_type'     => '',
     'max_occupants' => '',
     'facilities'    => '',
 ];
 
-$roomTypes = [
-    'Single Room',
-    'Double Room',
-    'Shared Room',
-    '1RK',
-    '1BHK',
-    '2BHK',
-    '3BHK',
-    '2BK',
+$roomCategories = ['Room', 'Flat/Apartment'];
+
+$roomTypesByCategory = [
+    'Room'           => ['Single Room', 'Double Room', 'Shared Room'],
+    'Flat/Apartment' => ['1BK', '1BHK', '2BHK', '3BHK'],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -54,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $location    = trim($_POST['location'] ?? '');
     $price       = trim($_POST['price'] ?? '');
+    $category    = trim($_POST['category'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
     $maxOccupants = trim($_POST['max_occupants'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
@@ -62,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['description']   = $description;
     $old['location']      = $location;
     $old['price']         = $price;
+    $old['category']      = $category;
     $old['room_type']     = $roomType;
     $old['max_occupants'] = $maxOccupants;
     $old['facilities']    = $facilities;
@@ -96,8 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['price'] = "Price cannot be more than 10000000";
     }
 
-    if (!in_array($roomType, $roomTypes, true)) {
-        $errors['room_type'] = "Please choose a valid room type.";
+    if (!in_array($category, $roomCategories, true)) {
+        $errors['category'] = "Please choose a valid category.";
+    }
+
+    if (empty($roomType)) {
+        $errors['room_type'] = "Room type is required";
+    } elseif (!isset($roomTypesByCategory[$category]) || !in_array($roomType, $roomTypesByCategory[$category], true)) {
+        $errors['room_type'] = "Please choose a valid room type for the selected category.";
     }
 
     if ($maxOccupants === '' || filter_var($maxOccupants, FILTER_VALIDATE_INT) === false) {
@@ -168,8 +174,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!array_filter($errors)) {
 
         $sql = "INSERT INTO rooms
-                (owner_id, title, description, location, price, room_type, max_occupants, facilities, image, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (owner_id, title, description, location, price, category, room_type, max_occupants, facilities, image, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
 
         $stmt = mysqli_prepare($conn, $sql);
 
@@ -182,12 +188,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         mysqli_stmt_bind_param(
             $stmt,
-            "isssdsisss",
+            "isssdssisss",
             $ownerId,
             $title,
             $description,
             $location,
             $price,
+            $category,
             $roomType,
             $maxOccupantsDb,
             $facilitiesDb,
@@ -339,43 +346,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="form-group">
 
-                                <label for="room_type">Room Type</label>
+                                <label for="category">Category</label>
 
-                                <select name="room_type" id="room_type" required>
-                                    <option value="" <?= $old['room_type'] === '' ? 'selected' : '' ?> disabled>Select Room Type</option>
-                                    <?php foreach ($roomTypes as $type): ?>
-                                        <option value="<?= htmlspecialchars($type) ?>" <?= $old['room_type'] === $type ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($type) ?>
+                                <select name="category" id="category" required>
+                                    <option value="" <?= $old['category'] === '' ? 'selected' : '' ?> disabled>Select Category</option>
+                                    <?php foreach ($roomCategories as $cat): ?>
+                                        <option value="<?= htmlspecialchars($cat) ?>" <?= $old['category'] === $cat ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($cat) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
 
-                                <?php if ($errors['room_type'] !== ''): ?>
-                                    <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
-                                <?php endif; ?>
+                                <span class="error" id="category-error"><?= htmlspecialchars($errors['category']) ?></span>
 
                             </div>
 
                             <div class="form-group">
 
-                                <label for="price">Price (Rs. / month)</label>
+                                <label for="room_type">Type</label>
 
-                                <input
-                                    type="number"
-                                    id="price"
-                                    name="price"
-                                    placeholder="e.g. 8000"
-                                    min="0.01"
-                                    step="0.01"
-                                    value="<?= htmlspecialchars($old['price']) ?>"
-                                    required
-                                >
+                                <select name="room_type" id="room_type" required disabled>
+                                    <option value="" selected disabled>Select Type</option>
+                                </select>
 
-                                <?php if ($errors['price'] !== ''): ?>
-                                    <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
-                                <?php endif; ?>
+                                <span class="error" id="room_type-error"><?= htmlspecialchars($errors['room_type']) ?></span>
 
                             </div>
+
+                        </div>
+
+                        <div class="form-group">
+
+                            <label for="price">Price (Rs. / month)</label>
+
+                            <input
+                                type="number"
+                                id="price"
+                                name="price"
+                                placeholder="e.g. 8000"
+                                min="0.01"
+                                step="0.01"
+                                value="<?= htmlspecialchars($old['price']) ?>"
+                                required
+                            >
+
+                            <?php if ($errors['price'] !== ''): ?>
+                                <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
+                            <?php endif; ?>
 
                         </div>
 
@@ -479,6 +496,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
     <?php include '../includes/footer.php'; ?>
+
+    <script>
+        (function () {
+            const categorySelect = document.getElementById('category');
+            const typeSelect = document.getElementById('room_type');
+            const categoryError = document.getElementById('category-error');
+            const typeError = document.getElementById('room_type-error');
+
+            const typeMaps = <?= json_encode($roomTypesByCategory) ?>;
+
+            function buildTypeOptions(category) {
+                const types = typeMaps[category] || [];
+                typeSelect.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Select Type';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                typeSelect.appendChild(placeholder);
+
+                types.forEach(function (type) {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                });
+            }
+
+            function onCategoryChange() {
+                const category = categorySelect.value;
+
+                typeSelect.disabled = true;
+                typeSelect.value = '';
+                typeError.textContent = '';
+
+                if (typeMaps.hasOwnProperty(category)) {
+                    buildTypeOptions(category);
+                    typeSelect.disabled = false;
+                    categoryError.textContent = '';
+                }
+            }
+
+            categorySelect.addEventListener('change', onCategoryChange);
+
+            const initialCategory = <?= json_encode($old['category']) ?>;
+
+            if (initialCategory !== '' && typeMaps.hasOwnProperty(initialCategory)) {
+                categorySelect.value = initialCategory;
+                buildTypeOptions(initialCategory);
+
+                const initialType = <?= json_encode($old['room_type']) ?>;
+                if (initialType !== '') {
+                    typeSelect.value = initialType;
+                }
+
+                typeSelect.disabled = false;
+            }
+
+            document.querySelector('.add-room-form').addEventListener('submit', function (e) {
+                let valid = true;
+
+                if (categorySelect.value === '') {
+                    categoryError.textContent = 'Please choose a category.';
+                    valid = false;
+                } else {
+                    categoryError.textContent = '';
+                }
+
+                if (typeSelect.value === '') {
+                    typeError.textContent = 'Please choose a room type.';
+                    valid = false;
+                } else {
+                    typeError.textContent = '';
+                }
+
+                if (!valid) {
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
 
 </body>
 

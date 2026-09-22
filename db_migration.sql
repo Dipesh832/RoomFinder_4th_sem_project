@@ -25,3 +25,17 @@ ALTER TABLE bookings
 
 ALTER TABLE rooms
     ADD COLUMN max_occupants INT NOT NULL DEFAULT 1 AFTER room_type;
+
+
+    -- RoomFinder
+-- Migration for an existing database: add the property category column to
+-- the rooms table.
+--
+-- Categories are limited to 'Room' and 'Flat/Apartment'. The room_type column
+-- keeps its existing values; existing rows get an empty string.
+--
+-- Run against the existing database (do NOT re-run db.sql):
+--   mariadb -u <user> -p roomfinderDB < db_migration_category.sql
+
+ALTER TABLE rooms
+    ADD COLUMN category VARCHAR(50) NOT NULL AFTER price;

@@ -120,6 +120,29 @@ $pagePrice   = number_format((float) $room['price'], 2);
     <link rel="stylesheet" href="../assets/css/owner.css">
     <link rel="stylesheet" href="../assets/css/tenant.css">
     <link rel="stylesheet" href="../assets/css/footer.css">
+
+    <style>
+        #booking-form .booking-form-error {
+            display: none;
+
+            margin-top: 6px;
+
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        #booking-form .booking-form-error.is-visible {
+            display: block;
+        }
+
+        #booking-form .booking-form-group input.has-error,
+        #booking-form .booking-form-group select.has-error {
+            border-color: #dc2626;
+            background-color: #fff1f2;
+        }
+    </style>
 </head>
 
 <body>
@@ -258,7 +281,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     <h2 class="booking-form-title">Request Booking</h2>
                     <p class="booking-form-subtitle">Tell the owner how many people will live in this room and who they are.</p>
 
-                    <form action="<?= base_url('tenant/book-room') ?>" method="POST">
+                    <form action="<?= base_url('tenant/book-room') ?>" method="POST" novalidate>
 
                         <?= csrf_field() ?>
 
@@ -277,6 +300,8 @@ $pagePrice   = number_format((float) $room['price'], 2);
                                     <?php endforeach; ?>
                                 </select>
 
+                                <span class="booking-form-error" id="relationship-error"></span>
+
                                 <div id="relationship-detail-group" class="relationship-detail-group <?= $formRelationship === 'Other' ? '' : 'is-hidden' ?>">
                                     <label for="relationship_detail">Please specify</label>
                                     <input
@@ -288,12 +313,14 @@ $pagePrice   = number_format((float) $room['price'], 2);
                                         value="<?= htmlspecialchars($formRelationshipDetail) ?>"
                                         <?= $formRelationship === 'Other' ? 'required' : '' ?>
                                     >
+                                    <span class="booking-form-error" id="relationship-detail-error"></span>
                                 </div>
                             </div>
 
                             <div class="booking-form-group">
                                 <label for="occupant-count">Number of people</label>
                                 <input type="number" name="number_of_people" id="occupant-count" min="1" max="<?= $roomMaxOccupants ?>" value="<?= (int) $formNumber ?>" required>
+                                <span class="booking-form-error" id="occupant-count-error"></span>
                             </div>
 
                         </div>
@@ -385,6 +412,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                             '<div class="booking-form-group">' +
                                 '<label for="member-' + fieldIndex + '-name">Full name</label>' +
                                 '<input type="text" name="members[' + fieldIndex + '][name]" id="member-' + fieldIndex + '-name" value="' + name + '" maxlength="100" required>' +
+                                '<span class="booking-form-error" id="member-' + fieldIndex + '-name-error"></span>' +
                             '</div>' +
                             '<div class="booking-form-group">' +
                                 '<label for="member-' + fieldIndex + '-gender">Gender</label>' +
@@ -392,14 +420,17 @@ $pagePrice   = number_format((float) $room['price'], 2);
                                     '<option value="" disabled' + (selectedGender === '' ? ' selected' : '') + '>Select gender</option>' +
                                     genderOptions +
                                 '</select>' +
+                                '<span class="booking-form-error" id="member-' + fieldIndex + '-gender-error"></span>' +
                             '</div>' +
                             '<div class="booking-form-group">' +
                                 '<label for="member-' + fieldIndex + '-contact">Contact number</label>' +
                                 '<input type="text" name="members[' + fieldIndex + '][contact_number]" id="member-' + fieldIndex + '-contact" value="' + contact + '" maxlength="15" required>' +
+                                '<span class="booking-form-error" id="member-' + fieldIndex + '-contact-error"></span>' +
                             '</div>' +
                             '<div class="booking-form-group">' +
                                 '<label for="member-' + fieldIndex + '-address">Permanent address</label>' +
                                 '<input type="text" name="members[' + fieldIndex + '][permanent_address]" id="member-' + fieldIndex + '-address" value="' + address + '" maxlength="255" required>' +
+                                '<span class="booking-form-error" id="member-' + fieldIndex + '-address-error"></span>' +
                             '</div>' +
                         '</div>' +
                     '</div>';
@@ -407,8 +438,66 @@ $pagePrice   = number_format((float) $room['price'], 2);
 
             var renderTimer = null;
 
-            function renderPeople() {
+            var relationshipSelect = document.getElementById('relationship');
+            var detailGroup = document.getElementById('relationship-detail-group');
+            var detailInput = detailGroup ? detailGroup.querySelector('input[name="relationship_detail"]') : null;
+
+            var MEMBER_SUFFIX = { name: 'name', gender: 'gender', contact_number: 'contact', permanent_address: 'address' };
+            var RELATIONSHIP_VALUES = ['Self', 'Family', 'Friends', 'Couple', 'Relatives', 'Colleagues', 'Other'];
+
+            function memberFieldKey(name) {
+                var match = String(name).match(/^members\[(\d+)\]\[([^\]]+)\]$/);
+                return match ? match[2] : null;
+            }
+
+            function memberFieldIndex(name) {
+                var match = String(name).match(/^members\[(\d+)\]/);
+                return match ? parseInt(match[1], 10) : -1;
+            }
+
+            function showError(errorId, control, message) {
+                var span = errorId ? document.getElementById(errorId) : null;
+                if (message) {
+                    if (span) {
+                        span.textContent = message;
+                        span.classList.add('is-visible');
+                    }
+                    if (control) {
+                        control.classList.add('has-error');
+                    }
+                } else {
+                    if (span) {
+                        span.textContent = '';
+                        span.classList.remove('is-visible');
+                    }
+                    if (control) {
+                        control.classList.remove('has-error');
+                    }
+                }
+            }
+
+            function collectMemberData() {
+                var data = [];
+                var sections = listEl.querySelectorAll('.occupant-section');
+                var i;
+                for (i = 0; i < sections.length; i++) {
+                    var entry = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                    var controls = sections[i].querySelectorAll('input[name], select[name]');
+                    var j;
+                    for (j = 0; j < controls.length; j++) {
+                        var key = memberFieldKey(controls[j].getAttribute('name'));
+                        if (entry.hasOwnProperty(key)) {
+                            entry[key] = controls[j].value;
+                        }
+                    }
+                    data.push(entry);
+                }
+                return data;
+            }
+
+            function renderPeople(preserveData) {
                 var count = parseInt(countInput.value, 10);
+                var i;
 
                 // Only rebuild the occupant list for a committed, valid number.
                 // Empty or mid-edit values are ignored so the user can freely
@@ -417,29 +506,270 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     return;
                 }
 
+                if (preserveData) {
+                    config.members = collectMemberData();
+                }
+
                 listEl.innerHTML = '';
-                for (var i = 1; i <= count; i++) {
+                for (i = 1; i <= count; i++) {
                     listEl.insertAdjacentHTML('beforeend', personSectionHTML(config.members[i - 1] || null, i));
                 }
+            }
+
+            function isValidName(value) {
+                var trimmed = value.trim();
+                if (!trimmed) {
+                    return { valid: false, message: 'Name is required.' };
+                }
+                if (trimmed.length > 100) {
+                    return { valid: false, message: 'Name must be 100 characters or fewer.' };
+                }
+                if (!/[\p{L}]/u.test(trimmed) || !/^[\p{L}\s.'’\-]+$/u.test(trimmed)) {
+                    return { valid: false, message: 'Name must contain letters and spaces only.' };
+                }
+                return { valid: true, message: '' };
+            }
+
+            function isValidContactNumber(value) {
+                var trimmed = value.trim();
+                var plusCount = (trimmed.match(/\+/g) || []).length;
+                if (!trimmed || (plusCount > 0 && trimmed.charAt(0) !== '+') || plusCount > 1) {
+                    return { valid: false, message: 'Enter a valid contact number.' };
+                }
+                if (!/^[0-9+\s\-()]+$/.test(trimmed)) {
+                    return { valid: false, message: 'Enter a valid contact number.' };
+                }
+                var digits = trimmed.replace(/[^0-9]/g, '');
+                if (digits.length < 7 || digits.length > 15) {
+                    return { valid: false, message: 'Enter a valid contact number.' };
+                }
+                return { valid: true, message: '' };
+            }
+
+            function isValidAddress(value) {
+                var trimmed = value.trim();
+                if (!trimmed || trimmed.length > 255) {
+                    return { valid: false, message: 'Please enter a valid permanent address.' };
+                }
+                var letters = trimmed.match(/[a-zA-Z]/g) || [];
+                if (letters.length < 3) {
+                    return { valid: false, message: 'Please enter a valid permanent address.' };
+                }
+                var first = trimmed.charAt(0).toLowerCase();
+                var sameChar = true;
+                var i;
+                for (i = 1; i < trimmed.length; i++) {
+                    if (trimmed.charAt(i).toLowerCase() !== first) {
+                        sameChar = false;
+                        break;
+                    }
+                }
+                if (sameChar) {
+                    return { valid: false, message: 'Please enter a valid permanent address.' };
+                }
+                return { valid: true, message: '' };
+            }
+
+            function memberErrorId(fieldIndex, fieldKey) {
+                return 'member-' + fieldIndex + '-' + (MEMBER_SUFFIX[fieldKey] || fieldKey) + '-error';
+            }
+
+            function memberControl(fieldIndex, fieldKey) {
+                return document.getElementById('member-' + fieldIndex + '-' + (MEMBER_SUFFIX[fieldKey] || fieldKey));
+            }
+
+            function memberFieldResult(fieldKey, value) {
+                if (fieldKey === 'name') {
+                    return isValidName(value);
+                }
+                if (fieldKey === 'gender') {
+                    return GENDERS.indexOf(value) === -1
+                        ? { valid: false, message: 'Please select a valid gender.' }
+                        : { valid: true, message: '' };
+                }
+                if (fieldKey === 'contact_number') {
+                    return isValidContactNumber(value);
+                }
+                if (fieldKey === 'permanent_address') {
+                    return isValidAddress(value);
+                }
+                return { valid: true, message: '' };
+            }
+
+            function validateMemberField(fieldIndex, fieldKey, value) {
+                var result = memberFieldResult(fieldKey, value);
+                showError(
+                    memberErrorId(fieldIndex, fieldKey),
+                    memberControl(fieldIndex, fieldKey),
+                    result.valid ? '' : 'Member ' + (fieldIndex + 1) + ': ' + result.message
+                );
+                return result.valid ? null : memberControl(fieldIndex, fieldKey);
+            }
+
+            function validateMember(fieldIndex, data) {
+                var keys = ['name', 'gender', 'contact_number', 'permanent_address'];
+                var i, firstInvalid = null;
+                for (i = 0; i < keys.length; i++) {
+                    if (validateMemberField(fieldIndex, keys[i], data[keys[i]])) {
+                        if (!firstInvalid) {
+                            firstInvalid = memberControl(fieldIndex, keys[i]);
+                        }
+                    }
+                }
+                return firstInvalid;
+            }
+
+            function validateRelationship() {
+                var valid = RELATIONSHIP_VALUES.indexOf(relationshipSelect.value) !== -1;
+                showError('relationship-error', relationshipSelect, valid ? '' : 'Please select a valid relationship.');
+                return valid ? null : relationshipSelect;
+            }
+
+            function validateRelationshipDetail() {
+                var isOther = relationshipSelect.value === 'Other';
+                var value = detailInput ? detailInput.value.trim() : '';
+
+                if (isOther && !value) {
+                    showError('relationship-detail-error', detailInput, 'Please provide relationship details.');
+                    return detailInput;
+                }
+                if (value.length > 100) {
+                    showError('relationship-detail-error', detailInput, 'Relationship details must be 100 characters or fewer.');
+                    return detailInput;
+                }
+                showError('relationship-detail-error', detailInput, '');
+                return null;
+            }
+
+            function validateCount() {
+                var value = countInput.value.trim();
+                var count = parseInt(value, 10);
+
+                if (value === '' || !/^\d+$/.test(value) || count < 1 || count > 20) {
+                    showError('occupant-count-error', countInput, 'Number of people must be between 1 and 20.');
+                    return countInput;
+                }
+                if (count > MAX) {
+                    showError('occupant-count-error', countInput, 'This room allows a maximum of ' + MAX + ' occupants.');
+                    return countInput;
+                }
+                showError('occupant-count-error', countInput, '');
+                return null;
+            }
+
+            function validateAll() {
+                var firstInvalid = validateRelationship();
+                if (!firstInvalid) {
+                    firstInvalid = validateRelationshipDetail();
+                }
+                if (!firstInvalid) {
+                    firstInvalid = validateCount();
+                }
+
+                var count = parseInt(countInput.value, 10);
+                var i;
+                for (i = 0; i < count; i++) {
+                    var memberInvalid = validateMember(i, config.members[i] || { name: '', gender: '', contact_number: '', permanent_address: '' });
+                    if (!firstInvalid && memberInvalid) {
+                        firstInvalid = memberInvalid;
+                    }
+                }
+                return firstInvalid;
             }
 
             countInput.addEventListener('change', function () {
                 clearTimeout(renderTimer);
                 renderPeople();
+                validateCount();
             });
 
             countInput.addEventListener('input', function () {
                 clearTimeout(renderTimer);
-                renderTimer = setTimeout(renderPeople, 300);
+                renderTimer = setTimeout(function () {
+                    renderPeople();
+                    validateCount();
+                }, 300);
             });
+
+            listEl.addEventListener('input', function (event) {
+                var control = event.target;
+                if (!control || !control.name) {
+                    return;
+                }
+                var fieldIndex = memberFieldIndex(control.name);
+                var fieldKey = memberFieldKey(control.name);
+                if (fieldIndex < 0 || !fieldKey || !MEMBER_SUFFIX[fieldKey]) {
+                    return;
+                }
+                if (!config.members[fieldIndex]) {
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                }
+                config.members[fieldIndex][fieldKey] = control.value;
+                validateMemberField(fieldIndex, fieldKey, control.value);
+            });
+
+            listEl.addEventListener('change', function (event) {
+                var control = event.target;
+                if (!control || !control.name) {
+                    return;
+                }
+                var fieldIndex = memberFieldIndex(control.name);
+                var fieldKey = memberFieldKey(control.name);
+                if (fieldIndex < 0 || !fieldKey || !MEMBER_SUFFIX[fieldKey]) {
+                    return;
+                }
+                if (!config.members[fieldIndex]) {
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                }
+                config.members[fieldIndex][fieldKey] = control.value;
+                validateMemberField(fieldIndex, fieldKey, control.value);
+            });
+
+            listEl.addEventListener('blur', function (event) {
+                var control = event.target;
+                if (!control || !control.name) {
+                    return;
+                }
+                var fieldIndex = memberFieldIndex(control.name);
+                var fieldKey = memberFieldKey(control.name);
+                if (fieldIndex < 0 || !fieldKey || !MEMBER_SUFFIX[fieldKey]) {
+                    return;
+                }
+                if (!config.members[fieldIndex]) {
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                }
+                config.members[fieldIndex][fieldKey] = control.value;
+                validateMemberField(fieldIndex, fieldKey, control.value);
+            }, true);
+
+            if (relationshipSelect) {
+                relationshipSelect.addEventListener('change', function () {
+                    validateRelationship();
+                });
+            }
+
+            if (detailInput) {
+                detailInput.addEventListener('input', function () {
+                    validateRelationshipDetail();
+                });
+                detailInput.addEventListener('blur', function () {
+                    validateRelationshipDetail();
+                });
+            }
 
             renderPeople();
 
             var bookingFormEl = section.querySelector('form');
             if (bookingFormEl) {
-                bookingFormEl.addEventListener('submit', function () {
+                bookingFormEl.addEventListener('submit', function (event) {
                     clearTimeout(renderTimer);
-                    renderPeople();
+                    renderPeople(true);
+                    var firstInvalid = validateAll();
+                    if (firstInvalid) {
+                        event.preventDefault();
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus({ preventScroll: true });
+                    }
                 });
             }
 

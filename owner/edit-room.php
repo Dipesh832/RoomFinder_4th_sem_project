@@ -15,7 +15,7 @@ if ($roomId <= 0) {
  * Fetch room and verify ownership.
  */
 $stmt = $conn->prepare("
-    SELECT id, title, description, location, price, room_type, max_occupants, facilities, image, status
+    SELECT id, title, description, location, price, category, room_type, max_occupants, facilities, image, status
     FROM rooms
     WHERE id = ? AND owner_id = ?
 ");
@@ -40,6 +40,7 @@ $errors = [
     'description'   => '',
     'location'      => '',
     'price'         => '',
+    'category'      => '',
     'room_type'     => '',
     'max_occupants' => '',
     'facilities'    => '',
@@ -51,21 +52,23 @@ $old = [
     'description'   => $room['description'],
     'location'      => $room['location'],
     'price'         => $room['price'],
+    'category'      => $room['category'] ?? '',
     'room_type'     => $room['room_type'],
     'max_occupants' => $room['max_occupants'],
     'facilities'    => $room['facilities'] ?? '',
 ];
 
-$roomTypes = [
-    'Single Room',
-    'Double Room',
-    'Shared Room',
-    '1RK',
-    '1BHK',
-    '2BHK',
-    '3BHK',
-    '2BK',
+$roomCategories = ['Room', 'Flat/Apartment'];
+
+$roomTypesByCategory = [
+    'Room'           => ['Single Room', 'Double Room', 'Shared Room'],
+    'Flat/Apartment' => ['1RK', '1BHK', '2BHK', '3BHK'],
 ];
+
+$allValidRoomTypes = [];
+foreach ($roomTypesByCategory as $types) {
+    $allValidRoomTypes = array_merge($allValidRoomTypes, $types);
+}
 
 $legacyRoomTypeMap = [
     'single' => 'Single Room',
@@ -84,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = trim($_POST['description'] ?? '');
     $location    = trim($_POST['location'] ?? '');
     $price       = trim($_POST['price'] ?? '');
+    $category    = trim($_POST['category'] ?? '');
     $roomType    = trim($_POST['room_type'] ?? '');
     $maxOccupants = trim($_POST['max_occupants'] ?? '');
     $facilities  = trim($_POST['facilities'] ?? '');
@@ -92,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['description']   = $description;
     $old['location']      = $location;
     $old['price']         = $price;
+    $old['category']      = $category;
     $old['room_type']     = $roomType;
     $old['max_occupants'] = $maxOccupants;
     $old['facilities']    = $facilities;
@@ -126,8 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['price'] = "Price cannot be more than 10000000";
     }
 
-    if (!in_array($roomType, $roomTypes, true)) {
-        $errors['room_type'] = "Please choose a valid room type.";
+    if (!in_array($category, $roomCategories, true)) {
+        $errors['category'] = "Please choose a valid category.";
+    }
+
+    if (empty($roomType)) {
+        $errors['room_type'] = "Room type is required";
+    } elseif (!isset($roomTypesByCategory[$category]) || !in_array($roomType, $roomTypesByCategory[$category], true)) {
+        $errors['room_type'] = "Please choose a valid room type for the selected category.";
     }
 
     if ($maxOccupants === '' || filter_var($maxOccupants, FILTER_VALIDATE_INT) === false) {
@@ -205,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $sql = "UPDATE rooms
-                SET title = ?, description = ?, location = ?, price = ?,
+                SET title = ?, description = ?, location = ?, price = ?, category = ?,
                     room_type = ?, facilities = ?, image = ?, max_occupants = ?
                 WHERE id = ? AND owner_id = ?";
 
@@ -218,11 +229,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         mysqli_stmt_bind_param(
             $stmt,
-            "sssdsssiii",
+            "sssdssssiii",
             $title,
             $description,
             $location,
             $price,
+            $category,
             $roomType,
             $facilitiesDb,
             $finalImage,
@@ -257,16 +269,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$selectedRoomType = $old['room_type'];
-$legacyRoomType = null;
+/*
+ * Resolve the values shown in the form.
+ *
+ * $old carries the database values on a fresh load and the submitted values
+ * after a failed POST, so both flows repopulate correctly below.
+ */
+$displayCategory = in_array($old['category'], $roomCategories, true) ? $old['category'] : '';
 
-if (!in_array($selectedRoomType, $roomTypes, true)) {
-    if (isset($legacyRoomTypeMap[$selectedRoomType])) {
-        $selectedRoomType = $legacyRoomTypeMap[$selectedRoomType];
-    } else {
-        $legacyRoomType = $old['room_type'];
-        $selectedRoomType = '';
-    }
+$displayType = $old['room_type'];
+if (isset($legacyRoomTypeMap[$displayType])) {
+    $displayType = $legacyRoomTypeMap[$displayType];
+}
+if (!in_array($displayType, $allValidRoomTypes, true)) {
+    $displayType = '';
+}
+
+/*
+ * A stored room_type that is neither one of the official values nor a known
+ * legacy value (single/double/shared) is never overwritten behind the scenes.
+ * It is only shown to the owner with a hint so they can choose a valid option.
+ */
+$legacyRoomType = null;
+if (!empty($room['room_type'])
+    && !in_array($room['room_type'], $allValidRoomTypes, true)
+    && !isset($legacyRoomTypeMap[$room['room_type']])) {
+    $legacyRoomType = $room['room_type'];
 }
 ?>
 
@@ -381,61 +409,65 @@ if (!in_array($selectedRoomType, $roomTypes, true)) {
 
                     <h3 class="add-room-section-heading">Property Details</h3>
 
-                    <!-- Room Type & Price (side by side) -->
+                    <!-- Category & Type (side by side) -->
 
                     <div class="form-row">
 
                         <div class="form-group">
 
-                            <label for="room_type">Room Type</label>
+                            <label for="category">Category</label>
 
-                            <?php if ($legacyRoomType !== null): ?>
-                                <select name="room_type" id="room_type" required>
-                                    <option value="" disabled selected>Current: <?= htmlspecialchars($legacyRoomType) ?></option>
-                                    <?php foreach ($roomTypes as $type): ?>
-                                        <option value="<?= htmlspecialchars($type) ?>">
-                                            <?= htmlspecialchars($type) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <span class="field-hint">Your current Room Type is not in the standard list. Choose a valid option below to update it.</span>
-                            <?php else: ?>
-                                <select name="room_type" id="room_type" required>
-                                    <option value="" <?= $selectedRoomType === '' ? 'selected' : '' ?> disabled>Select Room Type</option>
-                                    <?php foreach ($roomTypes as $type): ?>
-                                        <option value="<?= htmlspecialchars($type) ?>" <?= $selectedRoomType === $type ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($type) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php endif; ?>
+                            <select name="category" id="category" required>
+                                <option value="" <?= $displayCategory === '' ? 'selected' : '' ?> disabled>Select Category</option>
+                                <?php foreach ($roomCategories as $cat): ?>
+                                    <option value="<?= htmlspecialchars($cat) ?>" <?= $displayCategory === $cat ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($cat) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
 
-                            <?php if ($errors['room_type'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['room_type']) ?></span>
-                            <?php endif; ?>
+                            <span class="error" id="category-error"><?= htmlspecialchars($errors['category']) ?></span>
 
                         </div>
 
                         <div class="form-group">
 
-                            <label for="price">Price (Rs. / month)</label>
+                            <label for="room_type">Type</label>
 
-                            <input
-                                type="number"
-                                id="price"
-                                name="price"
-                                placeholder="e.g. 8000"
-                                min="0.01"
-                                step="0.01"
-                                value="<?= htmlspecialchars($old['price']) ?>"
-                                required
-                            >
+                            <select name="room_type" id="room_type" required disabled>
+                                <option value="" selected disabled>Select Type</option>
+                            </select>
 
-                            <?php if ($errors['price'] !== ''): ?>
-                                <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
+                            <?php if ($legacyRoomType !== null): ?>
+                                <span class="field-hint">Your current Type "<?= htmlspecialchars($legacyRoomType) ?>" is not in the standard list. Choose a valid option below to update it.</span>
                             <?php endif; ?>
 
+                            <span class="error" id="room_type-error"><?= htmlspecialchars($errors['room_type']) ?></span>
+
                         </div>
+
+                    </div>
+
+                    <!-- Price -->
+
+                    <div class="form-group">
+
+                        <label for="price">Price (Rs. / month)</label>
+
+                        <input
+                            type="number"
+                            id="price"
+                            name="price"
+                            placeholder="e.g. 8000"
+                            min="0.01"
+                            step="0.01"
+                            value="<?= htmlspecialchars($old['price']) ?>"
+                            required
+                        >
+
+                        <?php if ($errors['price'] !== ''): ?>
+                            <span class="error"><?= htmlspecialchars($errors['price']) ?></span>
+                        <?php endif; ?>
 
                     </div>
 
@@ -542,6 +574,85 @@ if (!in_array($selectedRoomType, $roomTypes, true)) {
     </main>
 
     <?php include '../includes/footer.php'; ?>
+
+    <script>
+        (function () {
+            const categorySelect = document.getElementById('category');
+            const typeSelect = document.getElementById('room_type');
+            const categoryError = document.getElementById('category-error');
+            const typeError = document.getElementById('room_type-error');
+
+            const typeMaps = <?= json_encode($roomTypesByCategory) ?>;
+
+            const initialCategory = <?= json_encode($displayCategory) ?>;
+            const initialType = <?= json_encode($displayType) ?>;
+
+            function buildTypeOptions(category, preferredValue) {
+                const types = typeMaps[category] || [];
+                typeSelect.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Select Type';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                typeSelect.appendChild(placeholder);
+
+                types.forEach(function (type) {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                });
+
+                typeSelect.value = preferredValue || '';
+            }
+
+            function onCategoryChange() {
+                const previousValue = typeSelect.value || '';
+                const category = categorySelect.value;
+
+                typeSelect.disabled = true;
+                typeError.textContent = '';
+
+                if (typeMaps.hasOwnProperty(category)) {
+                    buildTypeOptions(category, previousValue);
+                    typeSelect.disabled = false;
+                    categoryError.textContent = '';
+                }
+            }
+
+            categorySelect.addEventListener('change', onCategoryChange);
+
+            if (initialCategory !== '' && typeMaps.hasOwnProperty(initialCategory)) {
+                categorySelect.value = initialCategory;
+                buildTypeOptions(initialCategory, initialType);
+                typeSelect.disabled = false;
+            }
+
+            document.querySelector('.add-room-form').addEventListener('submit', function (e) {
+                let valid = true;
+
+                if (categorySelect.value === '') {
+                    categoryError.textContent = 'Please choose a category.';
+                    valid = false;
+                } else {
+                    categoryError.textContent = '';
+                }
+
+                if (typeSelect.value === '') {
+                    typeError.textContent = 'Please choose a room type.';
+                    valid = false;
+                } else {
+                    typeError.textContent = '';
+                }
+
+                if (!valid) {
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
 
 </body>
 
