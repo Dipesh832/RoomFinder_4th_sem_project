@@ -2885,6 +2885,14 @@
   line-height: 1.5;
 }
 
+.booking-member-occupation {
+  margin: 0 0 6px;
+
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .booking-members-empty {
   margin: 0;
 

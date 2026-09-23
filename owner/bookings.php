@@ -65,7 +65,7 @@ if (!empty($bookings)) {
     $placeholders = implode(',', array_fill(0, count($bookingIds), '?'));
 
     $stmt = $conn->prepare("
-        SELECT booking_id, name, gender, contact_number, permanent_address
+        SELECT booking_id, name, gender, contact_number, occupation, permanent_address
         FROM booking_members
         WHERE booking_id IN (" . $placeholders . ")
         ORDER BY booking_id, id
@@ -306,6 +306,11 @@ if (!empty($bookings)) {
                                                         <span class="booking-member-gender"><?= htmlspecialchars($member['gender']) ?></span>
                                                         <span class="booking-member-contact"><?= htmlspecialchars($member['contact_number']) ?></span>
                                                     </div>
+
+                                                    <p class="booking-member-occupation">
+                                                        <strong>Occupation:</strong>
+                                                        <?= htmlspecialchars($member['occupation'] ?? '') ?>
+                                                    </p>
 
                                                     <p class="booking-member-address">
                                                         <?= htmlspecialchars($member['permanent_address']) ?>

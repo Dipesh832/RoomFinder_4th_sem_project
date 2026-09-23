@@ -142,6 +142,14 @@ $pagePrice   = number_format((float) $room['price'], 2);
             border-color: #dc2626;
             background-color: #fff1f2;
         }
+
+        #booking-form .occupant-occupation-other {
+            margin-top: 12px;
+        }
+
+        #booking-form .occupant-occupation-other.is-hidden {
+            display: none;
+        }
     </style>
 </head>
 
@@ -381,6 +389,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             }
 
             var GENDERS = ['Male', 'Female', 'Other'];
+            var OCCUPATIONS = ['Student', 'Job/Employed', 'Self-employed/Business', 'Other'];
             var MAX = config.max || <?= $roomMaxOccupants ?>;
 
             function esc(value) {
@@ -398,11 +407,19 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 var contact = esc(data.contact_number || '');
                 var address = esc(data.permanent_address || '');
                 var selectedGender = data.gender || '';
+                var selectedOccupation = data.occupation || '';
+                var occupationOther = esc(data.occupation_other || '');
+                var isOtherOccupation = selectedOccupation === 'Other';
                 var fieldIndex = personNo - 1;
 
                 var genderOptions = GENDERS.map(function (g) {
                     var selected = g === selectedGender ? ' selected' : '';
                     return '<option value="' + g + '"' + selected + '>' + g + '</option>';
+                }).join('');
+
+                var occupationOptions = OCCUPATIONS.map(function (o) {
+                    var selected = o === selectedOccupation ? ' selected' : '';
+                    return '<option value="' + esc(o) + '"' + selected + '>' + esc(o) + '</option>';
                 }).join('');
 
                 return '' +
@@ -428,6 +445,19 @@ $pagePrice   = number_format((float) $room['price'], 2);
                                 '<span class="booking-form-error" id="member-' + fieldIndex + '-contact-error"></span>' +
                             '</div>' +
                             '<div class="booking-form-group">' +
+                                '<label for="member-' + fieldIndex + '-occupation">Occupation</label>' +
+                                '<select name="members[' + fieldIndex + '][occupation]" id="member-' + fieldIndex + '-occupation" required>' +
+                                    '<option value="" disabled' + (selectedOccupation === '' ? ' selected' : '') + '>Select Occupation</option>' +
+                                    occupationOptions +
+                                '</select>' +
+                                '<span class="booking-form-error" id="member-' + fieldIndex + '-occupation-error"></span>' +
+                                '<div class="occupant-occupation-other' + (isOtherOccupation ? '' : ' is-hidden') + '">' +
+                                    '<label for="member-' + fieldIndex + '-occupation-other">Specify occupation</label>' +
+                                    '<input type="text" name="members[' + fieldIndex + '][occupation_other]" id="member-' + fieldIndex + '-occupation-other" value="' + occupationOther + '" maxlength="100" placeholder="e.g. Teacher, Freelancer"' + (isOtherOccupation ? ' required' : '') + '>' +
+                                    '<span class="booking-form-error" id="member-' + fieldIndex + '-occupation-other-error"></span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="booking-form-group">' +
                                 '<label for="member-' + fieldIndex + '-address">Permanent address</label>' +
                                 '<input type="text" name="members[' + fieldIndex + '][permanent_address]" id="member-' + fieldIndex + '-address" value="' + address + '" maxlength="255" required>' +
                                 '<span class="booking-form-error" id="member-' + fieldIndex + '-address-error"></span>' +
@@ -442,7 +472,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             var detailGroup = document.getElementById('relationship-detail-group');
             var detailInput = detailGroup ? detailGroup.querySelector('input[name="relationship_detail"]') : null;
 
-            var MEMBER_SUFFIX = { name: 'name', gender: 'gender', contact_number: 'contact', permanent_address: 'address' };
+            var MEMBER_SUFFIX = { name: 'name', gender: 'gender', contact_number: 'contact', occupation: 'occupation', occupation_other: 'occupation-other', permanent_address: 'address' };
             var RELATIONSHIP_VALUES = ['Self', 'Family', 'Friends', 'Couple', 'Relatives', 'Colleagues', 'Other'];
 
             function memberFieldKey(name) {
@@ -481,7 +511,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 var sections = listEl.querySelectorAll('.occupant-section');
                 var i;
                 for (i = 0; i < sections.length; i++) {
-                    var entry = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                    var entry = { name: '', gender: '', contact_number: '', occupation: '', occupation_other: '', permanent_address: '' };
                     var controls = sections[i].querySelectorAll('input[name], select[name]');
                     var j;
                     for (j = 0; j < controls.length; j++) {
@@ -570,6 +600,35 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 return { valid: true, message: '' };
             }
 
+            function isValidCustomOccupation(value) {
+                var trimmed = String(value || '').trim();
+                if (!trimmed) {
+                    return { valid: false, message: 'Please specify the occupation.' };
+                }
+                if (trimmed.length > 100) {
+                    return { valid: false, message: 'Occupation must be 100 characters or fewer.' };
+                }
+                var letters = trimmed.match(/[a-zA-Z]/g) || [];
+                if (letters.length < 2) {
+                    return { valid: false, message: 'Please enter a valid occupation.' };
+                }
+                var blob = letters.join('').toLowerCase();
+                if (/^(.)\1*$/.test(blob)) {
+                    return { valid: false, message: 'Please enter a valid occupation.' };
+                }
+                return { valid: true, message: '' };
+            }
+
+            function isValidOccupation(value) {
+                if (!value) {
+                    return { valid: false, message: 'Occupation is required.' };
+                }
+                if (OCCUPATIONS.indexOf(value) === -1) {
+                    return { valid: false, message: 'Please choose a valid occupation.' };
+                }
+                return { valid: true, message: '' };
+            }
+
             function memberErrorId(fieldIndex, fieldKey) {
                 return 'member-' + fieldIndex + '-' + (MEMBER_SUFFIX[fieldKey] || fieldKey) + '-error';
             }
@@ -578,7 +637,32 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 return document.getElementById('member-' + fieldIndex + '-' + (MEMBER_SUFFIX[fieldKey] || fieldKey));
             }
 
-            function memberFieldResult(fieldKey, value) {
+            function syncOccupationOther(fieldIndex) {
+                var select = memberControl(fieldIndex, 'occupation');
+                var input = memberControl(fieldIndex, 'occupation_other');
+                if (!select || !input) {
+                    return;
+                }
+                var group = input.closest('.occupant-occupation-other');
+                var isOther = select.value === 'Other';
+
+                if (group) {
+                    group.classList.toggle('is-hidden', !isOther);
+                }
+
+                if (isOther) {
+                    input.setAttribute('required', 'required');
+                } else {
+                    input.removeAttribute('required');
+                    input.value = '';
+                    showError(memberErrorId(fieldIndex, 'occupation_other'), input, '');
+                    if (config.members[fieldIndex]) {
+                        config.members[fieldIndex].occupation_other = '';
+                    }
+                }
+            }
+
+            function memberFieldResult(fieldIndex, fieldKey, value) {
                 if (fieldKey === 'name') {
                     return isValidName(value);
                 }
@@ -590,6 +674,16 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 if (fieldKey === 'contact_number') {
                     return isValidContactNumber(value);
                 }
+                if (fieldKey === 'occupation') {
+                    return isValidOccupation(value);
+                }
+                if (fieldKey === 'occupation_other') {
+                    var occupationSelect = memberControl(fieldIndex, 'occupation');
+                    if (!occupationSelect || occupationSelect.value !== 'Other') {
+                        return { valid: true, message: '' };
+                    }
+                    return isValidCustomOccupation(value);
+                }
                 if (fieldKey === 'permanent_address') {
                     return isValidAddress(value);
                 }
@@ -597,7 +691,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             }
 
             function validateMemberField(fieldIndex, fieldKey, value) {
-                var result = memberFieldResult(fieldKey, value);
+                var result = memberFieldResult(fieldIndex, fieldKey, value);
                 showError(
                     memberErrorId(fieldIndex, fieldKey),
                     memberControl(fieldIndex, fieldKey),
@@ -607,7 +701,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
             }
 
             function validateMember(fieldIndex, data) {
-                var keys = ['name', 'gender', 'contact_number', 'permanent_address'];
+                var keys = ['name', 'gender', 'contact_number', 'occupation', 'occupation_other', 'permanent_address'];
                 var i, firstInvalid = null;
                 for (i = 0; i < keys.length; i++) {
                     if (validateMemberField(fieldIndex, keys[i], data[keys[i]])) {
@@ -669,7 +763,7 @@ $pagePrice   = number_format((float) $room['price'], 2);
                 var count = parseInt(countInput.value, 10);
                 var i;
                 for (i = 0; i < count; i++) {
-                    var memberInvalid = validateMember(i, config.members[i] || { name: '', gender: '', contact_number: '', permanent_address: '' });
+                    var memberInvalid = validateMember(i, config.members[i] || { name: '', gender: '', contact_number: '', occupation: '', occupation_other: '', permanent_address: '' });
                     if (!firstInvalid && memberInvalid) {
                         firstInvalid = memberInvalid;
                     }
@@ -702,10 +796,13 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     return;
                 }
                 if (!config.members[fieldIndex]) {
-                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', occupation: '', occupation_other: '', permanent_address: '' };
                 }
                 config.members[fieldIndex][fieldKey] = control.value;
                 validateMemberField(fieldIndex, fieldKey, control.value);
+                if (fieldKey === 'occupation') {
+                    syncOccupationOther(fieldIndex);
+                }
             });
 
             listEl.addEventListener('change', function (event) {
@@ -719,10 +816,13 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     return;
                 }
                 if (!config.members[fieldIndex]) {
-                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', occupation: '', occupation_other: '', permanent_address: '' };
                 }
                 config.members[fieldIndex][fieldKey] = control.value;
                 validateMemberField(fieldIndex, fieldKey, control.value);
+                if (fieldKey === 'occupation') {
+                    syncOccupationOther(fieldIndex);
+                }
             });
 
             listEl.addEventListener('blur', function (event) {
@@ -736,10 +836,13 @@ $pagePrice   = number_format((float) $room['price'], 2);
                     return;
                 }
                 if (!config.members[fieldIndex]) {
-                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', permanent_address: '' };
+                    config.members[fieldIndex] = { name: '', gender: '', contact_number: '', occupation: '', occupation_other: '', permanent_address: '' };
                 }
                 config.members[fieldIndex][fieldKey] = control.value;
                 validateMemberField(fieldIndex, fieldKey, control.value);
+                if (fieldKey === 'occupation') {
+                    syncOccupationOther(fieldIndex);
+                }
             }, true);
 
             if (relationshipSelect) {

@@ -9,8 +9,7 @@
 --   mariadb -u <user> -p roomfinderDB < db_migration_relationship_detail.sql
 
 ALTER TABLE bookings
-    ADD COLUMN relationship_detail V
-    ARCHAR(100) NULL AFTER relationship;
+    ADD COLUMN relationship_detail VARCHAR(100) NULL AFTER relationship;
 
 
 
@@ -39,3 +38,29 @@ ALTER TABLE rooms
 
 ALTER TABLE rooms
     ADD COLUMN category VARCHAR(50) NOT NULL AFTER price;
+
+
+    -- RoomFinder
+-- Migration for an existing database: add the occupation column to the
+-- booking_members table.
+--
+-- Occupations are 'Student', 'Job/Employed', 'Self-employed/Business',
+-- or free text entered when the tenant chooses 'Other'.
+--
+-- Safe for a populated table: the column is added with a temporary
+-- default so existing rows are backfilled, then the default is dropped
+-- so the final definition matches db.sql (VARCHAR(100) NOT NULL).
+-- IF NOT EXISTS prevents a duplicate column if already migrated.
+--
+-- Run against the existing database (do NOT re-run db.sql):
+--   mariadb -u <user> -p roomfinderDB < db_migration.sql
+
+ALTER TABLE booking_members
+    ADD COLUMN IF NOT EXISTS occupation VARCHAR(100) NOT NULL DEFAULT '' AFTER contact_number;
+
+UPDATE booking_members
+    SET occupation = ''
+    WHERE occupation IS NULL;
+
+ALTER TABLE booking_members
+    ALTER COLUMN occupation DROP DEFAULT;

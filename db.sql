@@ -88,6 +88,7 @@ CREATE TABLE booking_members (
     name VARCHAR(100) NOT NULL,
     gender ENUM('Male', 'Female', 'Other') NOT NULL,
     contact_number VARCHAR(20) NOT NULL,
+    occupation VARCHAR(100) NOT NULL,
     permanent_address VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

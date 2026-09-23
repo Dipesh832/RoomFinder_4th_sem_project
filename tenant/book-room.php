@@ -78,6 +78,42 @@ function isValidContact($value) {
 }
 
 /*
+ * Predefined occupation categories. The tenant picks one of these; only
+ * 'Other' carries free text supplied via the custom occupation field.
+ */
+$occupationCategories = [
+    'Student',
+    'Job/Employed',
+    'Self-employed/Business',
+    'Other',
+];
+
+/*
+ * Free-text occupation check used when the tenant selects 'Other'.
+ * Rejects empty input, strings over 100 characters, values with no
+ * letters (pure numbers/symbols), and repeated single-character garbage.
+ */
+function isValidCustomOccupation($value) {
+    if ($value === '') {
+        return false;
+    }
+    if (strlen($value) > 100) {
+        return false;
+    }
+    if (!preg_match('/[A-Za-z]/', $value)) {
+        return false;
+    }
+    $letters = preg_replace('/[^A-Za-z]/', '', $value);
+    if (strlen($letters) < 2) {
+        return false;
+    }
+    if (preg_match('/^(.)\1*$/i', $letters)) {
+        return false;
+    }
+    return true;
+}
+
+/*
  * Begin a transaction and lock the room row.
  * FOR UPDATE serialises this request against a concurrent owner
  * approval of the same room, so the availability check below cannot
@@ -263,14 +299,19 @@ foreach ($rawMembers as $index => $raw) {
     $gender  = trim((string) ($raw['gender'] ?? ''));
     $contact = trim((string) ($raw['contact_number'] ?? ''));
     $address = trim((string) ($raw['permanent_address'] ?? ''));
+    $occupation       = trim((string) ($raw['occupation'] ?? ''));
+    $occupationOther  = trim((string) ($raw['occupation_other'] ?? ''));
 
     $genderCanonical = $genderMap[strtolower($gender)] ?? null;
+    $occupationCanonical = null;
     $personValid = true;
 
     $prefillMembers[] = [
         'name'              => $name,
         'gender'            => $gender,
         'contact_number'    => $contact,
+        'occupation'        => $occupation,
+        'occupation_other'  => $occupationOther,
         'permanent_address' => $address,
     ];
 
@@ -303,11 +344,35 @@ foreach ($rawMembers as $index => $raw) {
         $personValid = false;
     }
 
+    if ($occupation === '') {
+        $errors[] = "Occupation is required for Person " . $personNo . ".";
+        $personValid = false;
+    } elseif ($occupation === 'Other') {
+        if ($occupationOther === '') {
+            $errors[] = "Please specify the occupation for Person " . $personNo . ".";
+            $personValid = false;
+        } elseif (strlen($occupationOther) > 100) {
+            $errors[] = "Occupation for Person " . $personNo . " must be 100 characters or fewer.";
+            $personValid = false;
+        } elseif (!isValidCustomOccupation($occupationOther)) {
+            $errors[] = "Occupation for Person " . $personNo . " is invalid.";
+            $personValid = false;
+        } else {
+            $occupationCanonical = $occupationOther;
+        }
+    } elseif (in_array($occupation, $occupationCategories, true)) {
+        $occupationCanonical = $occupation;
+    } else {
+        $errors[] = "Please choose a valid occupation for Person " . $personNo . ".";
+        $personValid = false;
+    }
+
     if ($personValid) {
         $members[] = [
             'name'              => $name,
             'gender'            => $genderCanonical,
             'contact_number'    => $contact,
+            'occupation'        => $occupationCanonical,
             'permanent_address' => $address,
         ];
     }
@@ -352,19 +417,20 @@ try {
 
     $stmt = $conn->prepare("
         INSERT INTO booking_members
-            (booking_id, name, gender, contact_number, permanent_address)
+            (booking_id, name, gender, contact_number, occupation, permanent_address)
         VALUES
-            (?, ?, ?, ?, ?)
+            (?, ?, ?, ?, ?, ?)
     ");
 
-    $stmt->bind_param("issss", $bid, $bName, $bGender, $bContact, $bAddress);
+    $stmt->bind_param("isssss", $bid, $bName, $bGender, $bContact, $bOccupation, $bAddress);
 
     foreach ($members as $member) {
-        $bid      = $bookingId;
-        $bName    = $member['name'];
-        $bGender  = $member['gender'];
-        $bContact = $member['contact_number'];
-        $bAddress = $member['permanent_address'];
+        $bid         = $bookingId;
+        $bName       = $member['name'];
+        $bGender     = $member['gender'];
+        $bContact    = $member['contact_number'];
+        $bOccupation = $member['occupation'];
+        $bAddress    = $member['permanent_address'];
 
         if (!$stmt->execute()) {
             throw new Exception($stmt->error);
