@@ -42,6 +42,7 @@
   display: flex;
   align-items: center;
   gap: 28px;
+  min-width: 0;
 }
 
 .navbar-links a {
@@ -49,6 +50,7 @@
   font-size: 17px;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
@@ -65,6 +67,7 @@
   display: flex;
   align-items: center;
   gap: 22px;
+  min-width: 0;
 }
 
 .navbar-icon {
@@ -73,6 +76,7 @@
   font-size: 22px;
   cursor: pointer;
   padding: 5px;
+  flex-shrink: 0;
 }
 
 /* =========================
@@ -106,6 +110,10 @@
 .profile-name {
   color: #334155;
   font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
 .profile-arrow {
@@ -214,4 +222,185 @@
 .navbar-btn-register:hover {
   background: #059669;
   border-color: #059669;
+}
+
+/* =========================
+   Navbar Menu Toggle
+========================= */
+
+.navbar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  width: 44px;
+  height: 44px;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+
+  color: #111111;
+
+  cursor: pointer;
+
+  transition: color 0.2s ease, background-color 0.15s ease;
+}
+
+.navbar-toggle:hover {
+  color: #10b981;
+  background-color: #f0fdfa;
+}
+
+.navbar-toggle-icon {
+  flex-shrink: 0;
+}
+
+.navbar-toggle-close {
+  display: none;
+}
+
+/* =========================
+   Mobile Navbar Menu Panel
+========================= */
+
+.navbar-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+
+  max-height: calc(100vh - 76px);
+  overflow-y: auto;
+
+  background: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+
+  padding: 8px 0 16px;
+
+  z-index: 101;
+}
+
+.navbar-menu-link {
+  display: block;
+
+  padding: 15px 20px;
+
+  color: #111111;
+  font-size: 17px;
+  font-weight: 500;
+  text-decoration: none;
+
+  border-top: 1px solid #f1f5f9;
+
+  transition: color 0.2s ease, background-color 0.15s ease;
+}
+
+.navbar-menu-link:hover,
+.navbar-menu-link.active {
+  color: #10b981;
+  background-color: #f0fdfa;
+}
+
+.navbar-menu-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 10px 20px 0;
+  padding: 12px 20px;
+
+  border-top: none;
+}
+
+/* =========================
+   Navbar Responsive
+========================= */
+
+@media (max-width: 1000px) {
+  .navbar-container {
+    padding: 0 16px;
+  }
+
+  .navbar-links {
+    display: none;
+  }
+
+  .navbar-actions {
+    margin-left: auto;
+    gap: 14px;
+  }
+
+  .navbar-actions .navbar-btn {
+    display: none;
+  }
+
+  .navbar-toggle {
+    display: inline-flex;
+    margin-left: 14px;
+  }
+
+  .navbar-toggle[aria-expanded="true"] .navbar-toggle-open {
+    display: none;
+  }
+
+  .navbar-toggle[aria-expanded="true"] .navbar-toggle-close {
+    display: block;
+  }
+
+  .navbar-menu.open {
+    display: block;
+  }
+
+  .profile-name,
+  .profile-arrow {
+    display: none;
+  }
+
+  .profile-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .navbar-icon {
+    padding: 4px;
+  }
+}
+
+/* =========================
+   Navbar Responsive - Small Phones
+========================= */
+
+@media (max-width: 480px) {
+  .navbar-container {
+    padding: 0 12px;
+  }
+
+  .navbar-logo {
+    font-size: 24px;
+  }
+
+  .navbar-actions {
+    gap: 10px;
+  }
+
+  .profile-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .navbar-icon {
+    padding: 2px;
+  }
+
+  .navbar-toggle {
+    margin-left: 10px;
+  }
 }
