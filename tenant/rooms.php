@@ -7,6 +7,13 @@ $userName = $_SESSION['user']['name'] ?? 'Tenant';
 $tenantId = $_SESSION['user']['id'] ?? 0;
 
 /*
+ * Shared search/filter GET parameter sanitization (see
+ * includes/room_search_prepare.php). The search form itself lives on the
+ * Tenant Home page; this page consumes the parameters for the results.
+ */
+require_once __DIR__ . '/../includes/room_search_prepare.php';
+
+/*
  * Fetch all currently available rooms.
  */
 $stmt = $conn->prepare("

@@ -2,8 +2,8 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../middleware/require_tenant.php';
-?>
-<?php
+require_once __DIR__ . '/../includes/room_search_prepare.php';
+
 $userName = $_SESSION['user']['name'] ?? 'Tenant';
 ?>
 
@@ -28,7 +28,9 @@ $userName = $_SESSION['user']['name'] ?? 'Tenant';
     <?php include '../includes/navbar.php'; ?>
 
     <main class="tenant-dashboard">
-        <h1>Welcome, <?= htmlspecialchars($userName) ?></h1>
+
+        <?php include __DIR__ . '/../includes/hero_search.php'; ?>
+
     </main>
 
     <?php include '../includes/footer.php'; ?>
