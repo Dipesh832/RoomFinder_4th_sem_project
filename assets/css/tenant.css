@@ -114,6 +114,25 @@
     0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
+.rooms-header-with-filter {
+  margin-bottom: 20px;
+}
+
+.rooms-result-count {
+  margin: 6px 0 0;
+
+  color: #059669;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tenant-rooms-filter-panel {
+  max-width: 100%;
+  margin: 0 0 32px;
+  padding: 16px;
+  border-radius: 14px;
+}
+
 .tenant-search-form {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(

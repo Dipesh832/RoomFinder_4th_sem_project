@@ -8,14 +8,41 @@ $tenantId = $_SESSION['user']['id'] ?? 0;
 
 /*
  * Shared search/filter GET parameter sanitization (see
- * includes/room_search_prepare.php). The search form itself lives on the
- * Tenant Home page; this page consumes the parameters for the results.
+ * includes/room_search_prepare.php). This page consumes the parameters
+ * for the filtered results.
  */
 require_once __DIR__ . '/../includes/room_search_prepare.php';
 
-/*
- * Fetch all currently available rooms.
- */
+$conditions = ["status = 'available'"];
+$params = [];
+$bindTypes = '';
+
+if ($searchLocation !== '') {
+    $conditions[] = 'location LIKE ?';
+    $params[] = '%' . $searchLocation . '%';
+    $bindTypes .= 's';
+}
+
+if ($searchCategory !== '') {
+    $conditions[] = 'category = ?';
+    $params[] = $searchCategory;
+    $bindTypes .= 's';
+}
+
+if ($searchType !== '') {
+    $conditions[] = 'room_type = ?';
+    $params[] = $searchType;
+    $bindTypes .= 's';
+}
+
+if ($searchMaxPrice !== '') {
+    $conditions[] = 'price <= ?';
+    $params[] = (float) $searchMaxPrice;
+    $bindTypes .= 'd';
+}
+
+$whereClause = implode(' AND ', $conditions);
+
 $stmt = $conn->prepare("
     SELECT
         id,
@@ -30,14 +57,23 @@ $stmt = $conn->prepare("
         max_occupants,
         created_at
     FROM rooms
-    WHERE status = 'available'
+    WHERE {$whereClause}
     ORDER BY created_at DESC
 ");
+
+if ($bindTypes !== '') {
+    $stmt->bind_param($bindTypes, ...$params);
+}
 
 $stmt->execute();
 
 $result = $stmt->get_result();
 $rooms = $result->fetch_all(MYSQLI_ASSOC);
+$roomCount = count($rooms);
+$hasActiveFilters = $searchLocation !== ''
+    || $searchCategory !== ''
+    || $searchType !== ''
+    || $searchMaxPrice !== '';
 
 $stmt->close();
 
@@ -91,15 +127,141 @@ if ($tenantId > 0) {
 
         <section class="rooms-section">
 
-            <div class="rooms-header">
+            <div class="rooms-header rooms-header-with-filter">
 
                 <div class="rooms-header-text">
                     <h1 class="rooms-heading">Browse Rooms</h1>
                     <p class="rooms-subtitle">Find available rooms listed on RoomFinder.</p>
+                    <p class="rooms-result-count">
+                        <?= $roomCount ?> <?= $roomCount === 1 ? 'room' : 'rooms' ?> found
+                    </p>
                 </div>
 
             </div>
 
+            <div class="tenant-search-panel tenant-rooms-filter-panel">
+                <form class="tenant-search-form tenant-rooms-filter-form" action="<?= htmlspecialchars($searchFormAction) ?>" method="GET"
+                    aria-label="Search rooms" novalidate>
+
+                    <div class="tenant-search-field tenant-search-location">
+                        <label for="browse-search-location">Location</label>
+                        <input type="text" id="browse-search-location" name="location" placeholder="Search by location"
+                            maxlength="255" value="<?= htmlspecialchars($searchLocation) ?>">
+                    </div>
+
+                    <div class="tenant-search-field tenant-search-category">
+                        <label for="browse-search-category">Category</label>
+                        <select id="browse-search-category" name="category">
+                            <option value="" <?= $searchCategory === '' ? 'selected' : '' ?>>All Categories</option>
+                            <?php foreach ($searchCategories as $category): ?>
+                                <option value="<?= htmlspecialchars($category) ?>" <?= $searchCategory === $category ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($category) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="tenant-search-field tenant-search-type">
+                        <label for="browse-search-type">Type</label>
+                        <select id="browse-search-type" name="type">
+                            <option value="" <?= $searchType === '' ? 'selected' : '' ?>>All Types</option>
+                            <?php foreach ($searchAllTypes as $type): ?>
+                                <option value="<?= htmlspecialchars($type) ?>" <?= $searchType === $type ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($type) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="tenant-search-field tenant-search-price">
+                        <label for="browse-search-max-price">Maximum Price</label>
+                        <input type="number" id="browse-search-max-price" name="max_price" placeholder="e.g. 15000" min="0.01"
+                            step="0.01" inputmode="decimal" value="<?= htmlspecialchars($searchMaxPrice) ?>">
+                    </div>
+
+                    <div class="tenant-search-action">
+                        <button type="submit" class="tenant-search-btn">
+                            <svg class="tenant-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                                <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                            Search
+                        </button>
+                    </div>
+
+                </form>
+
+                <div class="tenant-search-clear">
+                    <a href="<?= htmlspecialchars($clearFiltersUrl) ?>" class="tenant-search-clear-link">
+                        <svg class="tenant-search-clear-icon" viewBox="0 0 24 24" fill="none"
+                            xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" />
+                        </svg>
+                        Clear Filters
+                    </a>
+                </div>
+            </div>
+
+            <script>
+                (function () {
+
+                    var categorySelect = document.getElementById('browse-search-category');
+                    var typeSelect = document.getElementById('browse-search-type');
+
+                    var typeMaps = <?= json_encode($searchTypesByCategory) ?>;
+                    var allTypes = <?= json_encode($searchAllTypes) ?>;
+
+                    function typesFor(category) {
+                        return Object.prototype.hasOwnProperty.call(typeMaps, category)
+                            ? typeMaps[category]
+                            : allTypes;
+                    }
+
+                    function buildTypeOptions(category) {
+                        var types = typesFor(category);
+
+                        typeSelect.innerHTML = '';
+
+                        var allTypesOption = document.createElement('option');
+                        allTypesOption.value = '';
+                        allTypesOption.textContent = 'All Types';
+                        typeSelect.appendChild(allTypesOption);
+
+                        types.forEach(function (type) {
+                            var option = document.createElement('option');
+                            option.value = type;
+                            option.textContent = type;
+                            typeSelect.appendChild(option);
+                        });
+                    }
+
+                    function onCategoryChange() {
+                        var previousType = typeSelect.value;
+                        var category = categorySelect.value;
+
+                        buildTypeOptions(category);
+
+                        if (previousType !== '' && typesFor(category).indexOf(previousType) !== -1) {
+                            typeSelect.value = previousType;
+                        }
+                    }
+
+                    categorySelect.addEventListener('change', onCategoryChange);
+
+                    var initialCategory = <?= json_encode($searchCategory) ?>;
+                    var initialType = <?= json_encode($searchType) ?>;
+
+                    buildTypeOptions(initialCategory);
+
+                    if (initialType !== '' && typesFor(initialCategory).indexOf(initialType) !== -1) {
+                        typeSelect.value = initialType;
+                    }
+                })();
+            </script>
 
             <?php if (empty($rooms)): ?>
 
@@ -117,10 +279,16 @@ if ($tenantId > 0) {
 
                     </div>
 
-                    <h2 class="rooms-empty-title">No rooms available</h2>
+                    <h2 class="rooms-empty-title">
+                        <?= $hasActiveFilters ? 'No rooms match your search.' : 'No rooms available at the moment.' ?>
+                    </h2>
 
                     <p class="rooms-empty-text">
-                        There are currently no available rooms to browse.
+                        <?php if ($hasActiveFilters): ?>
+                            Try changing your location, category, type, or maximum price.
+                        <?php else: ?>
+                            There are currently no available rooms to browse.
+                        <?php endif; ?>
                     </p>
 
                 </div>
