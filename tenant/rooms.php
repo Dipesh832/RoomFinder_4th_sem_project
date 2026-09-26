@@ -101,6 +101,39 @@ if ($tenantId > 0) {
 
     $stmt->close();
 }
+
+/*
+ * Fetch the logged-in tenant's saved room IDs once, so each room card can
+ * render the correct favourite state without a per-room query. The saved
+ * state is read from the database only, never from client-side input.
+ */
+$savedRoomIds = [];
+
+if ($tenantId > 0) {
+    $stmt = $conn->prepare("
+        SELECT room_id
+        FROM bookmarks
+        WHERE user_id = ?
+    ");
+
+    $stmt->bind_param("i", $tenantId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $savedRoomIds[(int) $row['room_id']] = true;
+    }
+
+    $stmt->close();
+}
+
+/*
+ * Carry the active filters through the save/unsave round trip so the tenant
+ * lands back on the same result list. Only the known search parameters are
+ * echoed, and the values are the already-sanitized ones from
+ * includes/room_search_prepare.php. The card form repeats them as individual
+ * hidden fields, which bookmark-room.php allowlists on the way back.
+ */
 ?>
 
 <!DOCTYPE html>
@@ -138,6 +171,8 @@ if ($tenantId > 0) {
                 </div>
 
             </div>
+
+            <?= messages() ?>
 
             <div class="tenant-search-panel tenant-rooms-filter-panel">
                 <form class="tenant-search-form tenant-rooms-filter-form" action="<?= htmlspecialchars($searchFormAction) ?>" method="GET"
@@ -301,21 +336,74 @@ if ($tenantId > 0) {
 
                         <article class="room-card">
 
-                            <?php if (!empty($room['image'])): ?>
+                            <div class="room-card-media">
 
-                                <img
-                                    src="<?= htmlspecialchars(base_url($room['image'])) ?>"
-                                    alt="<?= htmlspecialchars($room['title']) ?>"
-                                    class="room-card-image"
-                                >
+                                <?php if (!empty($room['image'])): ?>
 
-                            <?php else: ?>
+                                    <img
+                                        src="<?= htmlspecialchars(base_url($room['image'])) ?>"
+                                        alt="<?= htmlspecialchars($room['title']) ?>"
+                                        class="room-card-image"
+                                    >
 
-                                <div class="room-card-image room-card-placeholder">
-                                    No Image
+                                <?php else: ?>
+
+                                    <div class="room-card-image room-card-placeholder">
+                                        No Image
+                                    </div>
+
+                                <?php endif; ?>
+
+                                <?php $isRoomSaved = isset($savedRoomIds[(int) $room['id']]); ?>
+
+                                <div class="room-card-media-bar">
+
+                                    <span class="room-status available">
+                                        Available
+                                    </span>
+
+                                    <form action="bookmark-room.php" method="POST" class="room-card-fav-form">
+                                        <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+                                        <input type="hidden" name="redirect" value="rooms">
+                                        <input type="hidden" name="location"
+                                            value="<?= htmlspecialchars($searchLocation) ?>">
+                                        <input type="hidden" name="category"
+                                            value="<?= htmlspecialchars($searchCategory) ?>">
+                                        <input type="hidden" name="type"
+                                            value="<?= htmlspecialchars($searchType) ?>">
+                                        <input type="hidden" name="max_price"
+                                            value="<?= htmlspecialchars($searchMaxPrice) ?>">
+                                        <?= csrf_field() ?>
+                                        <button type="submit"
+                                            class="room-card-fav-btn <?= $isRoomSaved ? 'is-saved' : '' ?>"
+                                            aria-pressed="<?= $isRoomSaved ? 'true' : 'false' ?>"
+                                            aria-label="<?= $isRoomSaved ? 'Remove saved room' : 'Save room' ?>"
+                                            title="<?= $isRoomSaved ? 'Remove saved room' : 'Save room' ?>">
+                                            <?php /*
+                                             * One heart geometry for both states: the same path is
+                                             * filled when saved and left open when not, so the
+                                             * icon never changes shape. currentColor keeps the
+                                             * heart red on the white button and white on the
+                                             * red one. The button carries the accessible
+                                             * label, so the SVG itself is hidden from
+                                             * assistive technology.
+                                             */ ?>
+                                            <svg class="room-card-fav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <path
+                                                    d="M12 21.4C10.9 20.3 2.1 14.9 2.1 9C2.1 5.5 4.7 2.8 7.9 2.8C9.8 2.8 11.3 3.8 12 5.2C12.7 3.8 14.2 2.8 16.1 2.8C19.3 2.8 21.9 5.5 21.9 9C21.9 14.9 13.1 20.3 12 21.4Z"
+                                                    fill="<?= $isRoomSaved ? 'currentColor' : 'none' ?>"
+                                                    stroke="currentColor"
+                                                    stroke-width="2.2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </form>
+
                                 </div>
 
-                            <?php endif; ?>
+                            </div>
 
 
                             <div class="room-card-content">
@@ -325,10 +413,6 @@ if ($tenantId > 0) {
                                     <h2 class="room-card-title">
                                         <?= htmlspecialchars($room['title']) ?>
                                     </h2>
-
-                                    <span class="room-status available">
-                                        Available
-                                    </span>
 
                                 </div>
 

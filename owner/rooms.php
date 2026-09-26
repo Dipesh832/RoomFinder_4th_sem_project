@@ -119,21 +119,31 @@ $stmt->close();
 
                         <article class="room-card">
 
-                            <?php if (!empty($room['image'])): ?>
+                            <div class="room-card-media">
 
-                                <img
-                                    src="<?= htmlspecialchars(base_url($room['image'])) ?>"
-                                    alt="<?= htmlspecialchars($room['title']) ?>"
-                                    class="room-card-image"
-                                >
+                                <?php if (!empty($room['image'])): ?>
 
-                            <?php else: ?>
+                                    <img
+                                        src="<?= htmlspecialchars(base_url($room['image'])) ?>"
+                                        alt="<?= htmlspecialchars($room['title']) ?>"
+                                        class="room-card-image"
+                                    >
 
-                                <div class="room-card-image room-card-placeholder">
-                                    No Image
+                                <?php else: ?>
+
+                                    <div class="room-card-image room-card-placeholder">
+                                        No Image
+                                    </div>
+
+                                <?php endif; ?>
+
+                                <div class="room-card-media-bar">
+                                    <span class="room-status <?= $room['status'] === 'available' ? 'available' : 'booked' ?>">
+                                        <?= htmlspecialchars(ucfirst($room['status'])) ?>
+                                    </span>
                                 </div>
 
-                            <?php endif; ?>
+                            </div>
 
 
                             <div class="room-card-content">
@@ -143,10 +153,6 @@ $stmt->close();
                                     <h2 class="room-card-title">
                                         <?= htmlspecialchars($room['title']) ?>
                                     </h2>
-
-                                    <span class="room-status <?= $room['status'] === 'available' ? 'available' : 'booked' ?>">
-                                        <?= htmlspecialchars(ucfirst($room['status'])) ?>
-                                    </span>
 
                                 </div>
 

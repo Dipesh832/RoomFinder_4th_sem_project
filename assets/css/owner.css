@@ -706,8 +706,40 @@
 }
 
 /* ========================================
+   ROOM CARD IMAGE OVERLAY
+   Shared by the tenant and owner room cards.
+   The wrapper only positions the overlay; the image
+   itself keeps its own width/height/object-fit.
+   ========================================= */
+
+.room-card-media {
+  position: relative;
+}
+
+.room-card-media-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  /* Clicks on the empty overlay area fall through to the image. */
+  pointer-events: none;
+}
+
+/* The status badge now sits on top of a photo, so it needs a soft
+   edge to separate from whatever is behind it. Colours are unchanged. */
+.room-card-media-bar .room-status {
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
+}
+
+/* ========================================
    ROOM CARD CONTENT
-========================================= */
+   ========================================= */
 
 .room-card-content {
   padding: 22px 24px 26px;

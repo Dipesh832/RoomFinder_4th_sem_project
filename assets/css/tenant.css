@@ -529,8 +529,90 @@
 }
 
 /* ========================================
+   ROOM CARD FAVOURITE BUTTON
+   Tenant only. Lives inside the shared image
+   overlay defined in owner.css.
+   ========================================= */
+
+.room-card-fav-form {
+  flex-shrink: 0;
+  margin: 0;
+  line-height: 0;
+  pointer-events: auto;
+}
+
+.room-card-fav-btn {
+  width: 40px;
+  height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.94);
+  color: #2b2a2a;
+
+  font-family: inherit;
+  text-decoration: none;
+
+  cursor: pointer;
+
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+/*
+ * The heart is an inline SVG rather than a text glyph, so it is sized and
+ * centred here. display:block keeps it optically centred inside the flex
+ * button and stops the inline baseline from nudging it down a pixel.
+ */
+.room-card-fav-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}
+
+.room-card-fav-btn:hover {
+  background: #ffffff;
+  transform: scale(1.05);
+}
+
+.room-card-fav-btn:active {
+  transform: scale(0.94);
+}
+
+.room-card-fav-btn:focus-visible {
+  outline: 2px solid var(--primary-dark);
+  outline-offset: 2px;
+}
+
+/* Saved: filled red disc with a white heart. */
+
+.room-card-fav-btn.is-saved {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.room-card-fav-btn.is-saved:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* ========================================
    TENANT ROOMS RESPONSIVE - MOBILE
-========================================= */
+   ========================================= */
 
 @media (max-width: 480px) {
   .room-card-actions {
