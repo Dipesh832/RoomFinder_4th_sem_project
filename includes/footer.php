@@ -10,7 +10,7 @@ $footerIsTenant = strpos($footerPhpSelf, '/tenant/') !== false;
 
 $footerBaseUrl = base_url('');
 $footerTenantRooms = base_url('tenant/rooms');
-$footerTenantBookmarks = base_url('tenant/bookmarks');
+$footerTenantBookmarks = base_url('tenant/saved');
 $footerTenantDashboard = base_url('tenant/dashboard');
 $footerOwnerDashboard = base_url('owner/dashboard');
 $footerOwnerRooms = base_url('owner/rooms');
