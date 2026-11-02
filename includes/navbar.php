@@ -82,6 +82,66 @@ $authLinks = $isLoggedIn ? [] : [
     ['label' => 'Log in',   'href' => $loginUrl,    'class' => 'navbar-btn navbar-btn-login'],
     ['label' => 'Register', 'href' => $registerUrl, 'class' => 'navbar-btn navbar-btn-register'],
 ];
+
+$messageRole = null;
+if ($isOwner && $role === 'owner') {
+    $messageRole = 'owner';
+} elseif ($isTenant && $role === 'tenant') {
+    $messageRole = 'tenant';
+}
+
+$unreadMessageCount = 0;
+
+if ($messageRole !== null && isset($conn) && $conn instanceof mysqli) {
+    $navbarUserId = (int) ($_SESSION['user']['id'] ?? 0);
+
+    if ($navbarUserId > 0) {
+        $navbarUnreadStmt = null;
+
+        try {
+            if ($messageRole === 'owner') {
+                $navbarUnreadSql = "SELECT COUNT(*) AS c
+                                    FROM messages
+                                    WHERE owner_id = ?
+                                      AND sender_role = 'tenant'
+                                      AND is_read = 0";
+            } else {
+                $navbarUnreadSql = "SELECT COUNT(*) AS c
+                                    FROM messages
+                                    WHERE tenant_id = ?
+                                      AND sender_role = 'owner'
+                                      AND is_read = 0";
+            }
+
+            $navbarUnreadStmt = $conn->prepare($navbarUnreadSql);
+
+            if ($navbarUnreadStmt) {
+                $navbarUnreadStmt->bind_param('i', $navbarUserId);
+
+                if ($navbarUnreadStmt->execute()) {
+                    $navbarUnreadStmt->bind_result($navbarUnreadValue);
+
+                    if ($navbarUnreadStmt->fetch()) {
+                        $unreadMessageCount = (int) $navbarUnreadValue;
+                    }
+                }
+
+                $navbarUnreadStmt->close();
+                $navbarUnreadStmt = null;
+            }
+        } catch (\Throwable $e) {
+            $unreadMessageCount = 0;
+
+            if ($navbarUnreadStmt instanceof mysqli_stmt) {
+                $navbarUnreadStmt->close();
+            }
+        }
+    }
+}
+
+$messageAriaLabel = $unreadMessageCount > 0
+    ? 'Messages, ' . $unreadMessageCount . ' unread'
+    : 'Messages';
 ?>
 
 <nav class="navbar">
@@ -107,10 +167,13 @@ $authLinks = $isLoggedIn ? [] : [
 
             <?php if ($isLoggedIn): ?>
 
-                <?php if ($isOwner || $isTenant): ?>
-                    <button class="navbar-icon" type="button" aria-label="Messages">
-                        <span>&#128172;</span>
-                    </button>
+                <?php if ($messageRole === 'owner' || $messageRole === 'tenant'): ?>
+                    <a class="navbar-icon navbar-messages" href="messages.php" aria-label="<?= htmlspecialchars($messageAriaLabel) ?>">
+                        <span aria-hidden="true">&#128172;</span>
+                        <?php if ($unreadMessageCount > 0): ?>
+                            <span class="navbar-badge" aria-hidden="true"><?= (int) $unreadMessageCount ?></span>
+                        <?php endif; ?>
+                    </a>
                 <?php endif; ?>
 
                 <div class="navbar-profile" id="navbar-profile">

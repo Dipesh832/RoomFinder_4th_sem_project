@@ -129,6 +129,7 @@ $stmt = $conn->prepare("
     SELECT COUNT(*) AS unread_count
     FROM messages
     WHERE owner_id = ?
+      AND sender_role = 'tenant'
       AND is_read = 0
 ");
 
@@ -155,6 +156,7 @@ $stmt = $conn->prepare("
     SELECT
         m.id,
         m.message,
+        m.sender_role,
         m.is_read,
         m.created_at,
         t.id AS tenant_id,
@@ -167,16 +169,19 @@ $stmt = $conn->prepare("
         ON m.tenant_id = t.id
     INNER JOIN rooms r
         ON m.room_id = r.id
+       AND r.owner_id = m.owner_id
     INNER JOIN (
         SELECT
+            tenant_id,
+            room_id,
             MAX(id) AS max_id,
-            SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread_count
+            SUM(CASE WHEN is_read = 0 AND sender_role = 'tenant' THEN 1 ELSE 0 END) AS unread_count
         FROM messages
         WHERE owner_id = ?
         GROUP BY tenant_id, room_id
     ) sub ON m.id = sub.max_id
     WHERE m.owner_id = ?
-    ORDER BY m.created_at DESC
+    ORDER BY m.created_at DESC, m.id DESC
     LIMIT 6
 ");
 
@@ -789,7 +794,7 @@ $stmt->close();
                                 <!-- Message Preview -->
 
                                 <div class="rm-card-message">
-                                    <?= htmlspecialchars($msg['message']) ?>
+                                    <?php if ($msg['sender_role'] === 'owner'): ?>You: <?php endif; ?><?= htmlspecialchars($msg['message']) ?>
                                 </div>
 
                                 <!-- Action -->

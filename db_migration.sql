@@ -64,3 +64,18 @@ UPDATE booking_members
 
 ALTER TABLE booking_members
     ALTER COLUMN occupation DROP DEFAULT;
+
+
+-- RoomFinder
+-- Migration for an existing database: add the sender role column to the
+-- messages table.
+--
+-- This migration assumes the target messages table is empty. Existing rows
+-- have no reliable way to determine whether the tenant or owner sent them,
+-- so historical sender identities must never be guessed or backfilled.
+--
+-- Run against the existing database (do NOT re-run db.sql):
+--   mariadb -u <user> -p roomfinderDB < db_migration.sql
+
+ALTER TABLE messages
+    ADD COLUMN sender_role ENUM('tenant', 'owner') NOT NULL AFTER message;

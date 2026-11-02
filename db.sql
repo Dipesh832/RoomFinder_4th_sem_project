@@ -104,6 +104,7 @@ CREATE TABLE messages (
     tenant_id INT NOT NULL,
     room_id INT NOT NULL,
     message TEXT NOT NULL,
+    sender_role ENUM('tenant', 'owner') NOT NULL,
     is_read TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

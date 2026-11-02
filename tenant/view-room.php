@@ -14,6 +14,7 @@ if ($roomId <= 0) {
 $stmt = $conn->prepare("
     SELECT
         id,
+        owner_id,
         title,
         description,
         location,
@@ -257,6 +258,12 @@ $pagePrice   = number_format((float) $room['price'], 2);
                                 <?= $isBookmarked ? '&#9829; Saved' : '&#9825; Save Room' ?>
                             </button>
                         </form>
+
+                        <?php if ((int) $room['owner_id'] !== (int) $tenantId): ?>
+                            <a href="messages.php?room_id=<?= (int) $room['id'] ?>" class="view-room-action-btn view-room-action-bookmark">
+                                Message Owner
+                            </a>
+                        <?php endif; ?>
 
                         <?php if ($room['status'] === 'available' && !$hasPendingBooking): ?>
                             <button type="button" id="booking-form-trigger" class="view-room-action-btn view-room-action-booking">
