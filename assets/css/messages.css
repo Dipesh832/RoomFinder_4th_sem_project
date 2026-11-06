@@ -533,7 +533,7 @@
 
 .composer-form {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 
   min-width: 0;

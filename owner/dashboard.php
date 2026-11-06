@@ -757,7 +757,8 @@ $stmt->close();
                             }
                             ?>
 
-                            <article class="recent-message-card">
+                            <a class="recent-message-card"
+                                href="messages.php?room_id=<?= (int) $msg['room_id'] ?>&amp;tenant_id=<?= (int) $msg['tenant_id'] ?>">
 
                                 <!-- Header -->
 
@@ -809,7 +810,7 @@ $stmt->close();
                                     </span>
                                 </div>
 
-                            </article>
+                            </a>
 
                         <?php endforeach; ?>
 
