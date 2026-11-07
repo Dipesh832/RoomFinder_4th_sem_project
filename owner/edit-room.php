@@ -65,6 +65,16 @@ $roomTypesByCategory = [
     'Flat/Apartment' => ['1RK', '1BHK', '2BHK', '3BHK'],
 ];
 
+$maxOccupantsByRoomType = [
+    'Single Room' => 2,
+    'Double Room' => 3,
+    'Shared Room' => 6,
+    '1RK'         => 2,
+    '1BHK'        => 3,
+    '2BHK'        => 5,
+    '3BHK'        => 8,
+];
+
 $allValidRoomTypes = [];
 foreach ($roomTypesByCategory as $types) {
     $allValidRoomTypes = array_merge($allValidRoomTypes, $types);
@@ -135,16 +145,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['category'] = "Please choose a valid category.";
     }
 
+    $roomTypeMax = null;
     if (empty($roomType)) {
         $errors['room_type'] = "Room type is required";
     } elseif (!isset($roomTypesByCategory[$category]) || !in_array($roomType, $roomTypesByCategory[$category], true)) {
         $errors['room_type'] = "Please choose a valid room type for the selected category.";
+    } else {
+        $roomTypeMax = $maxOccupantsByRoomType[$roomType] ?? null;
     }
 
     if ($maxOccupants === '' || filter_var($maxOccupants, FILTER_VALIDATE_INT) === false) {
-        $errors['max_occupants'] = "Maximum occupants is required";
+        $errors['max_occupants'] = "Maximum occupants is required and must be a whole number";
     } elseif ((int) $maxOccupants < 1 || (int) $maxOccupants > 20) {
         $errors['max_occupants'] = "Maximum occupants must be between 1 and 20";
+    } elseif ($roomTypeMax !== null && (int) $maxOccupants > $roomTypeMax) {
+        $errors['max_occupants'] = "Maximum occupants for " . $roomType . " cannot exceed " . $roomTypeMax . ".";
     }
 
     if (strlen($facilities) > 5000) {
@@ -488,11 +503,9 @@ if (!empty($room['room_type'])
                             required
                         >
 
-                        <span class="field-hint">Maximum number of people allowed to live here.</span>
+                        <span class="field-hint" id="max_occupants-hint">Maximum number of people allowed to live here.</span>
 
-                        <?php if ($errors['max_occupants'] !== ''): ?>
-                            <span class="error"><?= htmlspecialchars($errors['max_occupants']) ?></span>
-                        <?php endif; ?>
+                        <span class="error" id="max_occupants-error"><?= htmlspecialchars($errors['max_occupants']) ?></span>
 
                     </div>
 
@@ -581,11 +594,79 @@ if (!empty($room['room_type'])
             const typeSelect = document.getElementById('room_type');
             const categoryError = document.getElementById('category-error');
             const typeError = document.getElementById('room_type-error');
+            const maxInput = document.getElementById('max_occupants');
+            const maxHint = document.getElementById('max_occupants-hint');
+            const maxError = document.getElementById('max_occupants-error');
 
             const typeMaps = <?= json_encode($roomTypesByCategory) ?>;
+            const maxOccupantsByType = <?= json_encode($maxOccupantsByRoomType) ?>;
 
             const initialCategory = <?= json_encode($displayCategory) ?>;
             const initialType = <?= json_encode($displayType) ?>;
+
+            function getOccupancyLimit(type) {
+                return maxOccupantsByType.hasOwnProperty(type) ? maxOccupantsByType[type] : 20;
+            }
+
+            function getOccupancyMessage(type, limit) {
+                if (maxOccupantsByType.hasOwnProperty(type)) {
+                    return 'Maximum occupants for ' + type + ' cannot exceed ' + limit + '.';
+                }
+                return 'Maximum occupants must be between 1 and 20.';
+            }
+
+            function syncOccupancyLimit(validateLimit) {
+                const type = typeSelect.value;
+                const limit = getOccupancyLimit(type);
+
+                maxInput.max = limit;
+
+                if (maxOccupantsByType.hasOwnProperty(type)) {
+                    maxHint.textContent = 'Maximum ' + limit + ' occupant' + (limit === 1 ? '' : 's') + ' for ' + type + '.';
+                } else {
+                    maxHint.textContent = 'Maximum number of people allowed to live here.';
+                }
+
+                if (!validateLimit) {
+                    return;
+                }
+
+                const value = maxInput.value.trim();
+                const count = parseInt(value, 10);
+
+                if (value !== '' && /^\d+$/.test(value) && count > limit) {
+                    maxError.textContent = getOccupancyMessage(type, limit);
+                } else {
+                    maxError.textContent = '';
+                }
+            }
+
+            function validateOccupancy() {
+                const value = maxInput.value.trim();
+                const count = parseInt(value, 10);
+                const type = typeSelect.value;
+                const limit = getOccupancyLimit(type);
+
+                if (value === '' || !/^\d+$/.test(value)) {
+                    maxError.textContent = 'Maximum occupants is required and must be a whole number.';
+                    return false;
+                }
+                if (count < 1) {
+                    maxError.textContent = 'Maximum occupants must be at least 1.';
+                    return false;
+                }
+                if (count > 20) {
+                    maxError.textContent = 'Maximum occupants must be between 1 and 20.';
+                    return false;
+                }
+                if (count > limit) {
+                    maxError.textContent = getOccupancyMessage(type, limit);
+                    return false;
+                }
+
+                maxError.textContent = '';
+                return true;
+            }
 
             function buildTypeOptions(category, preferredValue) {
                 const types = typeMaps[category] || [];
@@ -620,15 +701,25 @@ if (!empty($room['room_type'])
                     typeSelect.disabled = false;
                     categoryError.textContent = '';
                 }
+
+                syncOccupancyLimit(true);
             }
 
             categorySelect.addEventListener('change', onCategoryChange);
+            typeSelect.addEventListener('change', function () {
+                syncOccupancyLimit(true);
+            });
+            maxInput.addEventListener('input', function () {
+                syncOccupancyLimit(true);
+            });
 
             if (initialCategory !== '' && typeMaps.hasOwnProperty(initialCategory)) {
                 categorySelect.value = initialCategory;
                 buildTypeOptions(initialCategory, initialType);
                 typeSelect.disabled = false;
             }
+
+            syncOccupancyLimit(false);
 
             document.querySelector('.add-room-form').addEventListener('submit', function (e) {
                 let valid = true;
@@ -645,6 +736,10 @@ if (!empty($room['room_type'])
                     valid = false;
                 } else {
                     typeError.textContent = '';
+                }
+
+                if (!validateOccupancy()) {
+                    valid = false;
                 }
 
                 if (!valid) {

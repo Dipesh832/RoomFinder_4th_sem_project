@@ -17,16 +17,24 @@ if ($statusFilter !== '' && !in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = '';
 }
 
-$roomTypeOptions = [
-    'Single Room',
-    'Double Room',
-    'Shared Room',
-    '1RK',
-    '1BHK',
-    '2BHK',
-    '3BHK',
-    '2BK',
+$roomCategories = ['Room', 'Flat/Apartment'];
+
+$roomTypesByCategory = [
+    'Room'           => ['Single Room', 'Double Room', 'Shared Room'],
+    'Flat/Apartment' => ['1RK', '1BHK', '2BHK', '3BHK'],
 ];
+
+$maxOccupantsByRoomType = [
+    'Single Room' => 2,
+    'Double Room' => 3,
+    'Shared Room' => 6,
+    '1RK'         => 2,
+    '1BHK'        => 3,
+    '2BHK'        => 5,
+    '3BHK'        => 8,
+];
+
+$allRoomTypes = array_merge(...array_values($roomTypesByCategory));
 
 $typeStmt = $conn->query("SELECT DISTINCT room_type FROM rooms WHERE room_type != '' ORDER BY room_type ASC");
 $roomTypes = [];
@@ -90,7 +98,9 @@ $dataSql = "SELECT
     r.description,
     r.location,
     r.price,
+    r.category,
     r.room_type,
+    r.max_occupants,
     r.facilities,
     r.image,
     r.status,
@@ -221,7 +231,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $addDesc      = trim($_POST['description'] ?? '');
     $addLocation  = trim($_POST['location'] ?? '');
     $addPrice     = trim($_POST['price'] ?? '');
+    $addCategory  = trim($_POST['category'] ?? '');
     $addRoomType  = trim($_POST['room_type'] ?? '');
+    $addMaxOccupants = trim($_POST['max_occupants'] ?? '');
     $addFacilities= trim($_POST['facilities'] ?? '');
     $addStatus    = $_POST['status'] ?? 'available';
 
@@ -261,8 +273,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $addErrors[] = 'Price cannot be more than 10000000.';
     }
 
-    if (!in_array($addRoomType, $roomTypeOptions, true)) {
-        $addErrors[] = 'Please choose a valid room type.';
+    if (!in_array($addCategory, $roomCategories, true)) {
+        $addErrors[] = 'Please choose a valid category.';
+    }
+
+    $addRoomTypeMax = null;
+    if (!isset($roomTypesByCategory[$addCategory]) || !in_array($addRoomType, $roomTypesByCategory[$addCategory], true)) {
+        $addErrors[] = 'Please choose a valid room type for the selected category.';
+    } else {
+        $addRoomTypeMax = $maxOccupantsByRoomType[$addRoomType] ?? null;
+    }
+
+    if ($addMaxOccupants === '' || filter_var($addMaxOccupants, FILTER_VALIDATE_INT) === false) {
+        $addErrors[] = 'Maximum occupants is required and must be a whole number.';
+    } elseif ((int) $addMaxOccupants < 1 || (int) $addMaxOccupants > 20) {
+        $addErrors[] = 'Maximum occupants must be between 1 and 20.';
+    } elseif ($addRoomTypeMax !== null && (int) $addMaxOccupants > $addRoomTypeMax) {
+        $addErrors[] = 'Maximum occupants for ' . $addRoomType . ' cannot exceed ' . $addRoomTypeMax . '.';
     }
 
     if (strlen($addFacilities) > 5000) {
@@ -289,7 +316,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'description'=> $addDesc,
             'location'   => $addLocation,
             'price'      => $addPrice,
+            'category'   => $addCategory,
             'room_type'  => $addRoomType,
+            'max_occupants' => $addMaxOccupants,
             'facilities' => $addFacilities,
             'status'     => $addStatus,
         ];
@@ -301,9 +330,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $addFacilities)))))
         : null;
     $imageDb      = $uploadResult['path'];
+    $addMaxOccupantsDb = (int) $addMaxOccupants;
 
-    $insStmt = $conn->prepare("INSERT INTO rooms (owner_id, title, description, location, price, room_type, facilities, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $insStmt->bind_param("isssdssss", $addOwnerId, $addTitle, $addDesc, $addLocation, $addPrice, $addRoomType, $facilitiesDb, $imageDb, $addStatus);
+    $insStmt = $conn->prepare("INSERT INTO rooms (owner_id, title, description, location, price, category, room_type, max_occupants, facilities, image, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $insStmt->bind_param("isssdssisss", $addOwnerId, $addTitle, $addDesc, $addLocation, $addPrice, $addCategory, $addRoomType, $addMaxOccupantsDb, $facilitiesDb, $imageDb, $addStatus);
 
     if ($insStmt->execute()) {
         $insStmt->close();
@@ -321,7 +351,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'description'=> $addDesc,
             'location'   => $addLocation,
             'price'      => $addPrice,
+            'category'   => $addCategory,
             'room_type'  => $addRoomType,
+            'max_occupants' => $addMaxOccupants,
             'facilities' => $addFacilities,
             'status'     => $addStatus,
         ];
@@ -339,7 +371,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $editDesc      = trim($_POST['description'] ?? '');
     $editLocation  = trim($_POST['location'] ?? '');
     $editPrice     = trim($_POST['price'] ?? '');
+    $editCategory  = trim($_POST['category'] ?? '');
     $editRoomType  = trim($_POST['room_type'] ?? '');
+    $editMaxOccupants = trim($_POST['max_occupants'] ?? '');
     $editFacilities= trim($_POST['facilities'] ?? '');
     $editStatus    = $_POST['status'] ?? 'available';
 
@@ -384,24 +418,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     /*
-     * Admin room types are restricted to the predefined list. A room that was
-     * created with an older free-text value may keep its existing value so it
-     * can be edited again without forcing a data change.
+     * Admin room types are restricted to the predefined category/type mapping.
+     * A legacy room type that is not part of the canonical mapping may be kept
+     * only while both its category and type remain unchanged.
      */
+    $existingCategory = null;
     $existingRoomType = null;
     if ($editRoomId > 0) {
-        $rtStmt = $conn->prepare("SELECT room_type FROM rooms WHERE id = ?");
+        $rtStmt = $conn->prepare("SELECT category, room_type FROM rooms WHERE id = ?");
         $rtStmt->bind_param("i", $editRoomId);
         $rtStmt->execute();
         $rtRow = $rtStmt->get_result()->fetch_assoc();
         $rtStmt->close();
+        $existingCategory = $rtRow['category'] ?? null;
         $existingRoomType = $rtRow['room_type'] ?? null;
     }
 
+    if (!in_array($editCategory, $roomCategories, true)) {
+        $editErrors[] = 'Please choose a valid category.';
+    }
+
+    $validTypeForCategory = isset($roomTypesByCategory[$editCategory])
+        && in_array($editRoomType, $roomTypesByCategory[$editCategory], true);
+    $unchangedLegacyType = $editCategory === $existingCategory
+        && $editRoomType === $existingRoomType
+        && !in_array($editRoomType, $allRoomTypes, true);
+    $editRoomTypeMax = $validTypeForCategory
+        ? ($maxOccupantsByRoomType[$editRoomType] ?? null)
+        : null;
+
     if ($editRoomType === '') {
         $editErrors[] = 'Room type is required.';
-    } elseif (!in_array($editRoomType, $roomTypeOptions, true) && $editRoomType !== $existingRoomType) {
-        $editErrors[] = 'Please choose a valid room type.';
+    } elseif (!$validTypeForCategory && !$unchangedLegacyType) {
+        $editErrors[] = 'Please choose a valid room type for the selected category.';
+    }
+
+    if ($editMaxOccupants === '' || filter_var($editMaxOccupants, FILTER_VALIDATE_INT) === false) {
+        $editErrors[] = 'Maximum occupants is required and must be a whole number.';
+    } elseif ((int) $editMaxOccupants < 1 || (int) $editMaxOccupants > 20) {
+        $editErrors[] = 'Maximum occupants must be between 1 and 20.';
+    } elseif ($editRoomTypeMax !== null && (int) $editMaxOccupants > $editRoomTypeMax) {
+        $editErrors[] = 'Maximum occupants for ' . $editRoomType . ' cannot exceed ' . $editRoomTypeMax . '.';
     }
 
     if (strlen($editFacilities) > 5000) {
@@ -444,7 +501,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'description'          => $editDesc,
             'location'             => $editLocation,
             'price'                => $editPrice,
+            'category'             => $editCategory,
             'room_type'            => $editRoomType,
+            'max_occupants'        => $editMaxOccupants,
             'facilities'           => $editFacilities,
             'status'               => $editStatus,
             'has_approved_bookings'=> $hasApprovedBookings,
@@ -465,7 +524,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             'description'          => $editDesc,
             'location'             => $editLocation,
             'price'                => $editPrice,
+            'category'             => $editCategory,
             'room_type'            => $editRoomType,
+            'max_occupants'        => $editMaxOccupants,
             'facilities'           => $editFacilities,
             'status'               => $editStatus,
             'has_approved_bookings'=> $hasApprovedBookings,
@@ -478,6 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         ? implode(', ', array_values(array_filter(array_map('trim', preg_split('/[,|]/', $editFacilities)))))
         : null;
     $newImageDb   = $uploadResult['path'];
+    $editMaxOccupantsDb = (int) $editMaxOccupants;
 
     if ($newImageDb !== null) {
         $oldImgStmt = $conn->prepare("SELECT image FROM rooms WHERE id = ?");
@@ -486,8 +548,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $oldImgRow = $oldImgStmt->get_result()->fetch_assoc();
         $oldImgStmt->close();
 
-        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, room_type = ?, facilities = ?, image = ?, status = ? WHERE id = ?");
-        $updStmt->bind_param("isssdssssi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editRoomType, $facilitiesDb, $newImageDb, $editStatus, $editRoomId);
+        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, category = ?, room_type = ?, facilities = ?, image = ?, max_occupants = ?, status = ? WHERE id = ?");
+        $updStmt->bind_param("isssdssssisi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editCategory, $editRoomType, $facilitiesDb, $newImageDb, $editMaxOccupantsDb, $editStatus, $editRoomId);
 
         if ($updStmt->execute()) {
             $updStmt->close();
@@ -512,15 +574,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'description'          => $editDesc,
                 'location'             => $editLocation,
                 'price'                => $editPrice,
+                'category'             => $editCategory,
                 'room_type'            => $editRoomType,
+                'max_occupants'        => $editMaxOccupants,
                 'facilities'           => $editFacilities,
                 'status'               => $editStatus,
                 'has_approved_bookings'=> $hasApprovedBookings,
             ];
         }
     } else {
-        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, room_type = ?, facilities = ?, status = ? WHERE id = ?");
-        $updStmt->bind_param("isssdsssi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editRoomType, $facilitiesDb, $editStatus, $editRoomId);
+        $updStmt = $conn->prepare("UPDATE rooms SET owner_id = ?, title = ?, description = ?, location = ?, price = ?, category = ?, room_type = ?, facilities = ?, max_occupants = ?, status = ? WHERE id = ?");
+        $updStmt->bind_param("isssdsssisi", $editOwnerId, $editTitle, $editDesc, $editLocation, $editPrice, $editCategory, $editRoomType, $facilitiesDb, $editMaxOccupantsDb, $editStatus, $editRoomId);
 
         if ($updStmt->execute()) {
             $updStmt->close();
@@ -536,7 +600,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'description'          => $editDesc,
                 'location'             => $editLocation,
                 'price'                => $editPrice,
+                'category'             => $editCategory,
                 'room_type'            => $editRoomType,
+                'max_occupants'        => $editMaxOccupants,
                 'facilities'           => $editFacilities,
                 'status'               => $editStatus,
                 'has_approved_bookings'=> $hasApprovedBookings,
@@ -697,6 +763,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         </td>
                                         <td>
                                             <strong><?= htmlspecialchars($room['title']) ?></strong>
+                                            <div class="admin-room-meta">
+                                                <?= htmlspecialchars($room['category']) ?> &middot; Max <?= (int) $room['max_occupants'] ?> occupant<?= (int) $room['max_occupants'] !== 1 ? 's' : '' ?>
+                                            </div>
                                         </td>
                                         <td><?= htmlspecialchars($room['owner_name']) ?></td>
                                         <td><?= htmlspecialchars($room['location']) ?></td>
@@ -840,19 +909,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <label class="admin-form-label">Location <span class="required">*</span></label>
                         <input type="text" name="location" class="admin-form-input" placeholder="e.g. Balaju, Kathmandu" required value="<?= htmlspecialchars($oldAdd['location'] ?? '') ?>">
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="admin-form-grid">
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Category <span class="required">*</span></label>
+                            <select name="category" id="create-category" class="admin-form-select" required>
+                                <option value="" <?= (($oldAdd['category'] ?? '') === '') ? 'selected' : '' ?> disabled>Select Category</option>
+                                <?php foreach ($roomCategories as $category): ?>
+                                    <option value="<?= htmlspecialchars($category) ?>" <?= (($oldAdd['category'] ?? '') === $category) ? 'selected' : '' ?>><?= htmlspecialchars($category) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
+                            <select name="room_type" id="create-room-type" class="admin-form-select" required disabled data-selected="<?= htmlspecialchars($oldAdd['room_type'] ?? '') ?>">
+                                <option value="" selected disabled>Select Room Type</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="admin-form-grid">
                         <div class="admin-form-group">
                             <label class="admin-form-label">Price (Rs. / month) <span class="required">*</span></label>
                             <input type="number" name="price" class="admin-form-input" placeholder="e.g. 8000" min="0" step="0.01" required value="<?= htmlspecialchars($oldAdd['price'] ?? '') ?>">
                         </div>
                         <div class="admin-form-group">
-                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
-                            <select name="room_type" class="admin-form-select" required>
-                                <option value="" <?= (($oldAdd['room_type'] ?? '') === '') ? 'selected' : '' ?> disabled>Select Room Type</option>
-                                <?php foreach ($roomTypeOptions as $type): ?>
-                                    <option value="<?= htmlspecialchars($type) ?>" <?= (($oldAdd['room_type'] ?? '') === $type) ? 'selected' : '' ?>><?= htmlspecialchars($type) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="admin-form-label">Maximum Occupants <span class="required">*</span></label>
+                            <input type="number" name="max_occupants" id="create-max-occupants" class="admin-form-input" placeholder="e.g. 3" min="1" max="20" step="1" required value="<?= htmlspecialchars($oldAdd['max_occupants'] ?? '') ?>">
+                            <div class="admin-form-hint" id="create-max-occupants-hint"></div>
                         </div>
                     </div>
                     <div class="admin-form-group">
@@ -919,19 +1001,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <label class="admin-form-label">Location <span class="required">*</span></label>
                         <input type="text" name="location" id="edit-location" class="admin-form-input" placeholder="e.g. Balaju, Kathmandu" required>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="admin-form-grid">
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Category <span class="required">*</span></label>
+                            <select name="category" id="edit-category" class="admin-form-select" required>
+                                <option value="" selected disabled>Select Category</option>
+                                <?php foreach ($roomCategories as $category): ?>
+                                    <option value="<?= htmlspecialchars($category) ?>"><?= htmlspecialchars($category) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
+                            <select name="room_type" id="edit-room-type" class="admin-form-select" required disabled>
+                                <option value="" selected disabled>Select Room Type</option>
+                            </select>
+                            <div class="admin-form-hint" id="edit-room-type-hint" style="display:none; color:#b45309;">
+                                This room uses a legacy type. It can be kept only while both Category and Room Type remain unchanged.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-form-grid">
                         <div class="admin-form-group">
                             <label class="admin-form-label">Price (Rs. / month) <span class="required">*</span></label>
                             <input type="number" name="price" id="edit-price" class="admin-form-input" placeholder="e.g. 8000" min="0" step="0.01" required>
                         </div>
                         <div class="admin-form-group">
-                            <label class="admin-form-label">Room Type <span class="required">*</span></label>
-                            <select name="room_type" id="edit-room-type" class="admin-form-select" required>
-                                <option value="" selected disabled>Select Room Type</option>
-                                <?php foreach ($roomTypeOptions as $type): ?>
-                                    <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="admin-form-label">Maximum Occupants <span class="required">*</span></label>
+                            <input type="number" name="max_occupants" id="edit-max-occupants" class="admin-form-input" placeholder="e.g. 3" min="1" max="20" step="1" required>
+                            <div class="admin-form-hint" id="edit-max-occupants-hint"></div>
                         </div>
                     </div>
                     <div class="admin-form-group">
@@ -989,6 +1087,153 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         return div.innerHTML;
     }
 
+    var adminRoomTypesByCategory = <?= json_encode($roomTypesByCategory) ?>;
+    var adminAllRoomTypes = <?= json_encode($allRoomTypes) ?>;
+    var adminMaxOccupantsByType = <?= json_encode($maxOccupantsByRoomType) ?>;
+
+    function adminOccupancyLimit(type) {
+        return Object.prototype.hasOwnProperty.call(adminMaxOccupantsByType, type) ? adminMaxOccupantsByType[type] : 20;
+    }
+
+    function adminOccupancyMessage(type, limit) {
+        if (Object.prototype.hasOwnProperty.call(adminMaxOccupantsByType, type)) {
+            return 'Maximum occupants for ' + type + ' cannot exceed ' + limit + '.';
+        }
+        return 'Maximum occupants must be between 1 and 20.';
+    }
+
+    function syncAdminOccupancyLimit(input, hint, type) {
+        var limit = adminOccupancyLimit(type);
+
+        input.max = limit;
+
+        var value = input.value.trim();
+        var count = parseInt(value, 10);
+        var message = '';
+
+        if (value !== '' && /^\d+$/.test(value) && count > limit) {
+            message = adminOccupancyMessage(type, limit);
+        }
+
+        input.setCustomValidity(message);
+
+        if (message !== '') {
+            hint.textContent = message;
+            hint.style.color = '#b45309';
+        } else if (Object.prototype.hasOwnProperty.call(adminMaxOccupantsByType, type)) {
+            hint.textContent = 'Maximum allowed for ' + type + ': ' + limit + '.';
+            hint.style.color = '';
+        } else {
+            hint.textContent = 'Allowed range: 1 to 20.';
+            hint.style.color = '';
+        }
+    }
+
+    function buildRoomTypeOptions(select, category, selectedValue, allowLegacy) {
+        var types = adminRoomTypesByCategory[category] || [];
+
+        select.innerHTML = '';
+
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select Room Type';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+
+        types.forEach(function(type) {
+            var option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            select.appendChild(option);
+        });
+
+        var isLegacy = false;
+        if (allowLegacy && selectedValue !== '' && types.indexOf(selectedValue) === -1 && adminAllRoomTypes.indexOf(selectedValue) === -1) {
+            var legacyOption = document.createElement('option');
+            legacyOption.value = selectedValue;
+            legacyOption.textContent = selectedValue + ' (legacy)';
+            select.appendChild(legacyOption);
+            isLegacy = true;
+        }
+
+        select.disabled = !Object.prototype.hasOwnProperty.call(adminRoomTypesByCategory, category);
+
+        if (!select.disabled && selectedValue !== '' && (types.indexOf(selectedValue) !== -1 || isLegacy)) {
+            select.value = selectedValue;
+        } else {
+            select.value = '';
+        }
+
+        return isLegacy;
+    }
+
+    function initCreateCategoryType() {
+        var categorySelect = document.getElementById('create-category');
+        var typeSelect = document.getElementById('create-room-type');
+        var maxInput = document.getElementById('create-max-occupants');
+        var maxHint = document.getElementById('create-max-occupants-hint');
+
+        buildRoomTypeOptions(typeSelect, categorySelect.value, typeSelect.getAttribute('data-selected') || '', false);
+        syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+
+        categorySelect.addEventListener('change', function() {
+            buildRoomTypeOptions(typeSelect, this.value, '', false);
+            syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+        });
+
+        typeSelect.addEventListener('change', function() {
+            syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+        });
+
+        maxInput.addEventListener('input', function() {
+            syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+        });
+    }
+
+    function setEditCategoryAndType(category, roomType, allowLegacy) {
+        var categorySelect = document.getElementById('edit-category');
+        var typeSelect = document.getElementById('edit-room-type');
+        var hint = document.getElementById('edit-room-type-hint');
+        var maxInput = document.getElementById('edit-max-occupants');
+        var maxHint = document.getElementById('edit-max-occupants-hint');
+
+        categorySelect.value = Object.prototype.hasOwnProperty.call(adminRoomTypesByCategory, category) ? category : '';
+
+        var isLegacy = buildRoomTypeOptions(typeSelect, categorySelect.value, roomType || '', allowLegacy);
+        hint.style.display = isLegacy ? 'block' : 'none';
+        syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+    }
+
+    initCreateCategoryType();
+
+    document.getElementById('edit-category').addEventListener('change', function() {
+        var typeSelect = document.getElementById('edit-room-type');
+        var hint = document.getElementById('edit-room-type-hint');
+        var maxInput = document.getElementById('edit-max-occupants');
+        var maxHint = document.getElementById('edit-max-occupants-hint');
+
+        buildRoomTypeOptions(typeSelect, this.value, '', false);
+        hint.style.display = 'none';
+        syncAdminOccupancyLimit(maxInput, maxHint, typeSelect.value);
+    });
+
+    document.getElementById('edit-room-type').addEventListener('change', function() {
+        syncAdminOccupancyLimit(
+            document.getElementById('edit-max-occupants'),
+            document.getElementById('edit-max-occupants-hint'),
+            this.value
+        );
+    });
+
+    document.getElementById('edit-max-occupants').addEventListener('input', function() {
+        syncAdminOccupancyLimit(
+            this,
+            document.getElementById('edit-max-occupants-hint'),
+            document.getElementById('edit-room-type').value
+        );
+    });
+
     // ─── View Room Modal ──────────────────────────────────
     function openRoomModal(room) {
         var statusClass = room.status === 'available' ? 'admin-badge-available' : 'admin-badge-booked';
@@ -1001,7 +1246,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Title</span><span class="admin-modal-value">' + escapeHtml(room.title) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Owner</span><span class="admin-modal-value">' + escapeHtml(room.owner_name) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Location</span><span class="admin-modal-value">' + escapeHtml(room.location) + '</span></div>';
+        html += '<div class="admin-modal-field"><span class="admin-modal-label">Category</span><span class="admin-modal-value">' + escapeHtml(room.category || 'Not set') + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Room Type</span><span class="admin-modal-value">' + escapeHtml(room.room_type.charAt(0).toUpperCase() + room.room_type.slice(1)) + '</span></div>';
+        html += '<div class="admin-modal-field"><span class="admin-modal-label">Maximum Occupants</span><span class="admin-modal-value">' + escapeHtml(String(room.max_occupants || '')) + '</span></div>';
         html += '<div class="admin-modal-field"><span class="admin-modal-label">Price</span><span class="admin-modal-value">Rs. ' + escapeHtml(room.price) + ' / month</span></div>';
         if (room.description) {
             html += '<div class="admin-modal-field"><span class="admin-modal-label">Description</span><span class="admin-modal-value">' + escapeHtml(room.description) + '</span></div>';
@@ -1030,24 +1277,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 
     // ─── Edit Room Modal ──────────────────────────────────
-    function setEditRoomType(value) {
-        var select = document.getElementById('edit-room-type');
-        var found = false;
-        for (var i = 0; i < select.options.length; i++) {
-            if (select.options[i].value === value) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            var opt = document.createElement('option');
-            opt.value = value;
-            opt.textContent = value;
-            select.appendChild(opt);
-        }
-        select.value = value;
-    }
-
     function openEditModal(room) {
         document.getElementById('edit-room-id').value = room.id;
         document.getElementById('edit-owner-id').value = room.owner_id;
@@ -1055,7 +1284,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('edit-description').value = room.description || '';
         document.getElementById('edit-location').value = room.location;
         document.getElementById('edit-price').value = room.price;
-        setEditRoomType(room.room_type);
+        document.getElementById('edit-max-occupants').value = room.max_occupants;
+        setEditCategoryAndType(room.category, room.room_type, true);
         document.getElementById('edit-facilities').value = room.facilities || '';
         document.getElementById('edit-status').value = room.status;
 
@@ -1117,7 +1347,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById('edit-description').value = editData.description;
         document.getElementById('edit-location').value = editData.location;
         document.getElementById('edit-price').value = editData.price;
-        setEditRoomType(editData.room_type);
+        document.getElementById('edit-max-occupants').value = editData.max_occupants;
+        setEditCategoryAndType(editData.category, editData.room_type, true);
         document.getElementById('edit-facilities').value = editData.facilities;
         document.getElementById('edit-status').value = editData.status;
         var statusWarning = document.getElementById('edit-status-warning');
