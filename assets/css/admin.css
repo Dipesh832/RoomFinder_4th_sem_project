@@ -975,6 +975,62 @@ a.monitor-stat:hover {
 }
 
 /* ========================================
+   ADMIN DASHBOARD
+========================================= */
+
+.dashboard-stat-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dashboard-stat-link:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.dashboard-stat-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.dashboard-main-col,
+.dashboard-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.dashboard-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashboard-card-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.dashboard-table-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ========================================
    ADMIN FORMS (Create / Edit)
 ======================================== */
 
@@ -1230,6 +1286,10 @@ a.monitor-stat:hover {
   .monitor-grid {
     grid-template-columns: 1fr 320px;
   }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
 }
 
 /* ========================================
@@ -1243,6 +1303,20 @@ a.monitor-stat:hover {
 
   .monitor-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-main-col,
+  .dashboard-side-col {
+    gap: 16px;
+  }
+
+  .dashboard-side-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .monitor-side-col {
@@ -1462,6 +1536,10 @@ a.monitor-stat:hover {
   }
 
   .monitor-side-col {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-side-col {
     grid-template-columns: 1fr;
   }
 
