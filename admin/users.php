@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <main class="admin-main">
 
-            <div class="admin-page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div class="admin-page-header admin-page-header-split">
                 <div>
                     <h1 class="admin-page-title">Manage Users</h1>
                     <p class="admin-page-subtitle">View and manage all registered users on the platform.</p>
@@ -322,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
                     </div>
                     <div class="admin-toolbar-right">
-                        <span style="color: #64748b; font-size: 14px;"><?= number_format($totalRows) ?> user<?= $totalRows !== 1 ? 's' : '' ?> found</span>
+                        <span><?= number_format($totalRows) ?> user<?= $totalRows !== 1 ? 's' : '' ?> found</span>
                     </div>
                 </div>
 
@@ -382,20 +382,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         <td><?= date('M j, Y', strtotime($u['created_at'])) ?></td>
                                         <td>
                                             <div class="admin-actions">
-                                                <button type="button" class="admin-btn" onclick='openUserModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details">
+                                                <button type="button" class="admin-btn admin-btn-icon" onclick='openUserModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details" aria-label="View User">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
-                                                <button type="button" class="admin-btn" onclick='openEditModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit User">
+                                                <button type="button" class="admin-btn admin-btn-icon" onclick='openEditModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit User" aria-label="Edit User">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                                     </svg>
                                                 </button>
                                                 <?php if ((int) $u['id'] !== $currentUserId): ?>
-                                                    <button type="button" class="admin-btn admin-btn-danger" onclick="confirmDeleteUser(<?= (int) $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name']), ENT_QUOTES) ?>')" title="Delete User">
+                                                    <button type="button" class="admin-btn admin-btn-icon admin-btn-danger" onclick="confirmDeleteUser(<?= (int) $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name']), ENT_QUOTES) ?>')" title="Delete User" aria-label="Delete User">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                             <polyline points="3 6 5 6 21 6" />
                                                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />

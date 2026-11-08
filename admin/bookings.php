@@ -205,7 +205,7 @@ $dataStmt->close();
                         </div>
                     </div>
                     <div class="admin-toolbar-right">
-                        <span style="color: #64748b; font-size: 14px;"><?= number_format($totalRows) ?> booking<?= $totalRows !== 1 ? 's' : '' ?> found</span>
+                        <span><?= number_format($totalRows) ?> booking<?= $totalRows !== 1 ? 's' : '' ?> found</span>
                     </div>
                 </div>
 
@@ -252,7 +252,7 @@ $dataStmt->close();
                                         <td><?= (int) $b['booking_id'] ?></td>
                                         <td>
                                             <strong><?= htmlspecialchars($b['room_title']) ?></strong>
-                                            <div style="color: #64748b; font-size: 12px; margin-top: 2px;"><?= htmlspecialchars($b['room_location']) ?></div>
+                                            <div class="admin-room-meta"><?= htmlspecialchars($b['room_location']) ?></div>
                                         </td>
                                         <td><?= htmlspecialchars($b['tenant_name']) ?></td>
                                         <td><?= htmlspecialchars($b['owner_name']) ?></td>
@@ -268,7 +268,7 @@ $dataStmt->close();
                                         <td><?= date('M j, Y', strtotime($b['created_at'])) ?></td>
                                         <td>
                                             <div class="admin-actions">
-                                                <button type="button" class="admin-btn" onclick='openBookingModal(<?= json_encode($b, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details">
+                                                <button type="button" class="admin-btn admin-btn-icon" onclick='openBookingModal(<?= json_encode($b, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details" aria-label="View Booking">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                                         <circle cx="12" cy="12" r="3" />

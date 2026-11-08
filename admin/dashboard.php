@@ -173,7 +173,7 @@ if ($stmt) {
                                                 <td>
                                                     <strong><?= htmlspecialchars($booking['room_title']) ?></strong>
                                                     <?php if (!empty($booking['room_location'])): ?>
-                                                        <div class="dashboard-table-meta">
+                                                        <div class="admin-room-meta">
                                                             <?= htmlspecialchars($booking['room_location']) ?>
                                                         </div>
                                                     <?php endif; ?>

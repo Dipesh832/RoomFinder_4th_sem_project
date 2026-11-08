@@ -633,7 +633,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <main class="admin-main">
 
-            <div class="admin-page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div class="admin-page-header admin-page-header-split">
                 <div>
                     <h1 class="admin-page-title">Manage Rooms</h1>
                     <p class="admin-page-subtitle">View and manage all rooms listed on the platform.</p>
@@ -708,7 +708,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <?php endif; ?>
                     </div>
                     <div class="admin-toolbar-right">
-                        <span style="color: #64748b; font-size: 14px;"><?= number_format($totalRows) ?> room<?= $totalRows !== 1 ? 's' : '' ?> found</span>
+                        <span><?= number_format($totalRows) ?> room<?= $totalRows !== 1 ? 's' : '' ?> found</span>
                     </div>
                 </div>
 
@@ -780,19 +780,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         <td><?= date('M j, Y', strtotime($room['created_at'])) ?></td>
                                         <td>
                                             <div class="admin-actions">
-                                                <button type="button" class="admin-btn" onclick='openRoomModal(<?= json_encode($room, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details">
+                                                <button type="button" class="admin-btn admin-btn-icon" onclick='openRoomModal(<?= json_encode($room, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="View Details" aria-label="View Room">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                                         <circle cx="12" cy="12" r="3" />
                                                     </svg>
                                                 </button>
-                                                <button type="button" class="admin-btn" onclick='openEditModal(<?= json_encode($room, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit Room">
+                                                <button type="button" class="admin-btn admin-btn-icon" onclick='openEditModal(<?= json_encode($room, JSON_HEX_APOS | JSON_HEX_TAG) ?>)' title="Edit Room" aria-label="Edit Room">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                                     </svg>
                                                 </button>
-                                                <button type="button" class="admin-btn admin-btn-danger" onclick="confirmDeleteRoom(<?= (int) $room['id'] ?>, '<?= htmlspecialchars(addslashes($room['title']), ENT_QUOTES) ?>')" title="Delete Room">
+                                                <button type="button" class="admin-btn admin-btn-icon admin-btn-danger" onclick="confirmDeleteRoom(<?= (int) $room['id'] ?>, '<?= htmlspecialchars(addslashes($room['title']), ENT_QUOTES) ?>')" title="Delete Room" aria-label="Delete Room">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <polyline points="3 6 5 6 21 6" />
                                                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -879,7 +879,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     unset($_SESSION['old_add']);
     ?>
     <div class="admin-modal-overlay" id="create-modal">
-        <div class="admin-modal" style="max-width: 600px;">
+        <div class="admin-modal admin-modal-lg">
             <div class="admin-modal-header">
                 <h3 class="admin-modal-title">Add New Room</h3>
                 <button class="admin-modal-close" onclick="closeCreateModal()" aria-label="Close">&times;</button>
@@ -938,11 +938,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
                     </div>
                     <div class="admin-form-group">
-                        <label class="admin-form-label">Facilities <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <label class="admin-form-label">Facilities <span class="admin-form-optional">(optional)</span></label>
                         <textarea name="facilities" class="admin-form-textarea" rows="2" placeholder="e.g. WiFi, Attached Bathroom, Parking"><?= htmlspecialchars($oldAdd['facilities'] ?? '') ?></textarea>
                     </div>
                     <div class="admin-form-group">
-                        <label class="admin-form-label">Room Image <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <label class="admin-form-label">Room Image <span class="admin-form-optional">(optional)</span></label>
                         <div class="admin-form-file">
                             <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
                             <div class="admin-form-hint">JPG, PNG, or WEBP. Max 2 MB.</div>
@@ -970,7 +970,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     unset($_SESSION['old_edit']);
     ?>
     <div class="admin-modal-overlay" id="edit-modal">
-        <div class="admin-modal" style="max-width: 600px;">
+        <div class="admin-modal admin-modal-lg">
             <div class="admin-modal-header">
                 <h3 class="admin-modal-title">Edit Room</h3>
                 <button class="admin-modal-close" onclick="closeEditModal()" aria-label="Close">&times;</button>
@@ -1016,7 +1016,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <select name="room_type" id="edit-room-type" class="admin-form-select" required disabled>
                                 <option value="" selected disabled>Select Room Type</option>
                             </select>
-                            <div class="admin-form-hint" id="edit-room-type-hint" style="display:none; color:#b45309;">
+                            <div class="admin-form-hint admin-form-hint-warning" id="edit-room-type-hint" style="display:none;">
                                 This room uses a legacy type. It can be kept only while both Category and Room Type remain unchanged.
                             </div>
                         </div>
@@ -1033,11 +1033,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </div>
                     </div>
                     <div class="admin-form-group">
-                        <label class="admin-form-label">Facilities <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <label class="admin-form-label">Facilities <span class="admin-form-optional">(optional)</span></label>
                         <textarea name="facilities" id="edit-facilities" class="admin-form-textarea" rows="2" placeholder="e.g. WiFi, Attached Bathroom, Parking"></textarea>
                     </div>
                     <div class="admin-form-group">
-                        <label class="admin-form-label">Room Image <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                        <label class="admin-form-label">Room Image <span class="admin-form-optional">(optional)</span></label>
                         <div class="admin-form-file">
                             <input type="file" name="image" id="edit-image" accept="image/jpeg,image/png,image/webp">
                             <div class="admin-form-hint">JPG, PNG, or WEBP. Max 2 MB. Leave empty to keep current image.</div>
@@ -1050,7 +1050,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <option value="available">Available</option>
                             <option value="booked">Booked</option>
                         </select>
-                        <div id="edit-status-warning" class="admin-form-hint" style="display:none; color:#b45309; margin-top:6px;">
+                        <div id="edit-status-warning" class="admin-form-hint admin-form-hint-warning" style="display:none; margin-top:6px;">
                             This room has an approved booking and cannot be changed to Available.
                         </div>
                     </div>
